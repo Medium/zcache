@@ -16,9 +16,11 @@
     , "url": "https://github.com/azulus/zcache.git"
   }
   , "dependencies": {
+      "memcache": "*"
   }
   , "devDependencies": {
-        "nodeunit": "0.7.4"
+        "nodeunit": "0.7.4",
+        "kew": "*"
     }
   , "scripts": {
       "test": "./node_modules/nodeunit/bin/nodeunit test"

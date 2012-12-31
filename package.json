@@ -1,0 +1,26 @@
+{
+    "name": "zcache"
+  , "description": "AWS zone-aware caching"
+  , "version": "0.0.1"
+  , "homepage": "https://github.com/azulus/zcache"
+  , "authors": [
+    "Jeremy Stanley <github@azulus.com> (https://github.com/azulus)"
+  ]
+  , "contributors": [
+
+    ]
+  , "keywords": ["zcache"]
+  , "main": "lib/zcache.js"
+  , "repository": {
+      "type": "git"
+    , "url": "https://github.com/azulus/zcache.git"
+  }
+  , "dependencies": {
+  }
+  , "devDependencies": {
+        "nodeunit": "0.7.4"
+    }
+  , "scripts": {
+      "test": "./node_modules/nodeunit/bin/nodeunit test"
+    }
+}

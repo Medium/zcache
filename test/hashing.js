@@ -20,31 +20,31 @@ exports.testSimple = function (test) {
 
   // add a second
   this.hasher.setNodeCapacity('second', 3)
-  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second'], canGain: ['second'], shouldRetain: ['second']})
+  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second'], canGain: 'second'})
 
   // ramp up the second
   this.hasher.setNodeCapacity('second', 6)
-  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second'], canGain: ['second'], shouldRetain: ['second']})
+  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second'], canGain: 'second'})
 
   // finish ramping up the second
   this.hasher.setNodeCapacity('second', 10)
-  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second'], canGain: ['second'], shouldRetain: ['second']})
+  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second'], canGain: 'second'})
 
   // add a third
   this.hasher.setNodeCapacity('third', 5)
-  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second', 'third'], canGain: ['third'], shouldRetain: ['third']})
+  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second', 'third'], canGain: 'third'})
 
   // finish ramping up the third
   this.hasher.setNodeCapacity('third', 10)
-  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second', 'third'], canGain: ['third'], shouldRetain: ['third']})
+  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second', 'third'], canGain: 'third'})
 
   // start spinning down the first
   this.hasher.setNodeCapacity('first', 5)
-  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second', 'third'], canGain: ['second', 'third'], shouldRetain: ['second', 'third']})
+  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['first', 'second', 'third'], canLose: 'first'})
 
   // finish spinning down the first
   this.hasher.setNodeCapacity('first', 0)
-  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['second', 'third'], canGain: ['second', 'third'], shouldRetain: ['second', 'third']})
+  results.push({nodes: this.hasher.getNodesForKeys(keys, 3), shouldExist: ['second', 'third'], canLose: 'first'})
 
   var i
   while (results.length) {
@@ -52,8 +52,8 @@ exports.testSimple = function (test) {
     var nodes = currentResults.nodes
 
     var exists = {}
-    var canGain = {}
-    var shouldRetain = {}
+    var canGain = null
+    var canLose = null
 
     if (currentResults.shouldExist) {
       // set up a map for whether nodesexist or not
@@ -62,19 +62,8 @@ exports.testSimple = function (test) {
       }
     }
 
-    if (currentResults.canGain) {
-      // set up a map for nodes that should be allowed to gain keys
-      for (i = 0; i < currentResults.canGain.length; i++) {
-        canGain[currentResults.canGain[i]] = true
-      }
-    }
-
-    if (currentResults.shouldRetain) {
-      // set up a map for nodes that should not lose keys
-      for (i = 0; i < currentResults.shouldRetain.length; i++) {
-        shouldRetain[currentResults.shouldRetain[i]] = true
-      }
-    }
+    if (currentResults.canGain) canGain = currentResults.canGain
+    if (currentResults.canLose) canLose = currentResults.canLose
 
     for (var key in nodes) {
       for (i = 0; i < nodes[key].length; i++) {
@@ -86,11 +75,13 @@ exports.testSimple = function (test) {
 
         if (oldNode == newNode) continue
 
-        // if the node is gaining and it shouldn't, error out
-        if (!canGain[newNode]) test.fail("node '" + newNode + "' should not gain new keys (gained from '" + oldNode + "')")
+        if (!canGain && !canLose) test.fail("node '" + oldNode + "' should not lose keys (lost to '" + newNode + "')")
 
-        // if the node isnt retaining and it should, error
-        if (shouldRetain[oldNode]) test.fail("node '" + oldNode + "' should retain existing keys (lost to '" + oldNode + "')")
+        // if a node is gaining and it shouldn't, error out
+        if (canGain && i === 0 && newNode != canGain) test.fail("node '" + newNode + "' should not be the first key")
+
+        // make sure the rest of the array isn't changing
+        if (canLose && i !== 0 && nodes[key][i] == canGain) test.fail("node '" + newNode + "' is still the first key but the rest of the array has changed")
       }
     }
 
@@ -100,7 +91,6 @@ exports.testSimple = function (test) {
 
     previousNodes = nodes
   }
-
   test.done()
 
 }

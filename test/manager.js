@@ -2,6 +2,9 @@ var CacheCluster = require('../lib/CacheCluster')
 var CacheManager = require('../lib/CacheManager')
 var Q = require('kew')
 
+process.on('uncaughtException', function (e) {
+  console.error(e, e.stack)
+})
 exports.testManager = function (test) {
   var cacheManager = new CacheManager()
 
@@ -64,7 +67,6 @@ exports.testManager = function (test) {
         console.error("ERROR", e, e.stack)
         throw e
       })
-      .end()
   }, 2000)
 
   setTimeout(function () {

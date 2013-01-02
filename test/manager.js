@@ -59,8 +59,6 @@ exports.testManager = function (test) {
       })
       .then(function (data) {
         console.log("GET", data)
-        primaryCluster.setServerCapacity('localhost:11212', 5)
-        primaryCluster.setServerCapacity('localhost:11213', 5)
       })
       .fail(function (e) {
         console.error("ERROR", e, e.stack)

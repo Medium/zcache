@@ -12,8 +12,8 @@ exports.testManager = function (test) {
   var primaryCluster = new CacheCluster({
     clientCtor: FakeMemcache
   })
-  primaryCluster.setServerCapacity('localhost:11212', 5)
-  primaryCluster.setServerCapacity('localhost:11213', 5)
+  primaryCluster.setServerCapacity('localhost:11212', 100)
+  primaryCluster.setServerCapacity('localhost:11213', 100 )
   cacheManager.addCluster('primary', primaryCluster, 1)
 
   var secondaryCluster = new CacheCluster({
@@ -26,14 +26,17 @@ exports.testManager = function (test) {
   var defer = Q.defer()
   setTimeout(function () {
     defer.resolve(true)
-  }, 200)
+  }, 100)
 
   defer.promise
     .then(function () {
+      // set a key with all servers in rotation
       return cacheManager.set("a", "123")
     })
     .then(function (data) {
       test.equal(data, true, "Should set key")
+
+      // drop the primaries out of rotation
       primaryCluster.setServerCapacity('localhost:11212', 0)
       primaryCluster.setServerCapacity('localhost:11213', 0)
       return cacheManager.get("a")
@@ -56,12 +59,15 @@ exports.testManager = function (test) {
     })
     .then(function (data) {
       test.equal(data, undefined, "Should get undefined")
+
+      // put the primaries back into rotation
       primaryCluster.setServerCapacity('localhost:11212', 5)
+
       primaryCluster.setServerCapacity('localhost:11213', 5)
       var defer = Q.defer()
       setTimeout(function () {
         defer.resolve(cacheManager.get("a"))
-      }, 1000)
+      }, 100)
       return defer.promise
     })
     .then(function (data) {

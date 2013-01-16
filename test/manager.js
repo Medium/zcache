@@ -80,6 +80,10 @@ exports.testManager = function (test) {
     })
     .then(function (data) {
       test.equal(data, undefined, "Should get undefined again")
+      primaryCluster.setServerCapacity('localhost:11212', 0)
+      primaryCluster.setServerCapacity('localhost:11213', 0)
+      secondaryCluster.setServerCapacity('localhost:11214', 0)
+      secondaryCluster.setServerCapacity('localhost:11215', 0)
       test.done()
     })
 }

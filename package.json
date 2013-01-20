@@ -1,7 +1,7 @@
 {
     "name": "zcache"
   , "description": "AWS zone-aware caching"
-  , "version": "0.0.3"
+  , "version": "0.0.4"
   , "homepage": "https://github.com/azulus/zcache"
   , "authors": [
     "Jeremy Stanley <github@azulus.com> (https://github.com/azulus)"

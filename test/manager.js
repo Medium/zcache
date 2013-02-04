@@ -6,6 +6,40 @@ var Q = require('kew')
 process.on('uncaughtException', function (e) {
   console.error(e, e.stack)
 })
+
+exports.testInvalidKey = function (test) {
+  var cacheManager = new CacheManager()
+
+  var primaryCluster = new CacheCluster({
+    clientCtor: FakeMemcache
+  })
+  primaryCluster.setServerCapacity('localhost:11212', 100)
+  primaryCluster.setServerCapacity('localhost:11213', 100 )
+  cacheManager.addCluster('primary', primaryCluster, 1)
+
+  var secondaryCluster = new CacheCluster({
+    clientCtor: FakeMemcache
+  })
+  secondaryCluster.setServerCapacity('localhost:11214', 100)
+  secondaryCluster.setServerCapacity('localhost:11215', 100)
+  cacheManager.addCluster('secondary', secondaryCluster, 2)
+
+  cacheManager.set("a", "123")
+    .then(function () {
+      return cacheManager.get(undefined)
+    })
+    .then(function (data) {
+      test.equal(data, undefined, "Response should be undefined")
+      return cacheManager.mget([undefined, null, "a"])
+    })
+    .then(function (data) {
+      test.equal(data[0], undefined, "Response[0] should be undefined")
+      test.equal(data[1], undefined, "Response[1] should be undefined")
+      test.equal(data[2], "123", "Response[2] should be 123")
+      test.done()
+    })
+}
+
 exports.testManager = function (test) {
   var cacheManager = new CacheManager()
 

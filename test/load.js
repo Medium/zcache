@@ -32,11 +32,11 @@ exports.testManager = function (test) {
     var currentVal = 0
     var setVal = function () {
       currentVal++
-      console.log('setting', currentVal)
+      //console.log('setting', currentVal)
       return cacheManager.set('testKey', currentVal)
     }
     var getVal = function () {
-      console.log('getting', currentVal)
+      //console.log('getting', currentVal)
       return cacheManager.get('testKey')
     }
     var handleLoop
@@ -45,7 +45,7 @@ exports.testManager = function (test) {
         .then(getVal)
         .then(function (val) {
           test.equal(val, currentVal, "Val should be correct")
-          if (currentVal <= 10000) {
+          if (currentVal <= 1000) {
             var defer = Q.defer()
             process.nextTick(function () {
               defer.resolve(handleLoop())

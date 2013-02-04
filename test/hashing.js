@@ -6,6 +6,14 @@ exports.setUp = function (done) {
   done()
 }
 
+exports.testBadKey = function (test) {
+  this.hasher.setNodeCapacity('first', 10)
+  this.hasher.setNodeCapacity('second', 10)
+
+  this.hasher.getNodesForKeys([undefined, null, 'abc', 123, {name: 'jeremy'}])
+  test.done()
+}
+
 exports.testSimple = function (test) {
   var keys = []
   for (var i = 0; i < 20; i++) {

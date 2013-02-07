@@ -1,7 +1,7 @@
 {
     "name": "zcache"
   , "description": "AWS zone-aware caching"
-  , "version": "0.0.10"
+  , "version": "0.0.11"
   , "homepage": "https://github.com/azulus/zcache"
   , "authors": [
     "Jeremy Stanley <github@azulus.com> (https://github.com/azulus)"
@@ -16,7 +16,8 @@
     , "url": "https://github.com/azulus/zcache.git"
   }
   , "dependencies": {
-      "memcached": "*"
+      "node-memcache-parser-obvfork": "0.1.1",
+      "generic-pool": "2.0.3"
   }
   , "devDependencies": {
         "nodeunit": "0.7.4",

@@ -29,9 +29,9 @@ exports.testManager = function (test) {
   }, 1000)
 
   defer.promise.then(function (data) {
-    var currentVal = 0
+    var currentVal = '0'
     var setVal = function () {
-      currentVal++
+      currentVal = String(parseInt(currentVal, 10) + 1)
       //console.log('setting', currentVal)
       return cacheManager.set('testKey', currentVal)
     }
@@ -45,7 +45,7 @@ exports.testManager = function (test) {
         .then(getVal)
         .then(function (val) {
           test.equal(val, currentVal, "Val should be correct")
-          if (currentVal <= 1000) {
+          if (parseInt(currentVal, 10) <= 2) {
             var defer = Q.defer()
             process.nextTick(function () {
               defer.resolve(handleLoop())

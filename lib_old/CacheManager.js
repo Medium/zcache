@@ -11,7 +11,7 @@ function CacheManager() {
 CacheManager.prototype.addCluster = function (name, cluster, priority) {
   this._clusters[name] = cluster
   this._priorities[name] = priority
- 
+
   this._sortClusters()
 }
 
@@ -25,7 +25,9 @@ CacheManager.prototype.get = function (key) {
 function chainGetPromise(currentPromise, key, nextClient) {
   // create the defer to grab the key from the next client
   var defer = Q.defer()
-  nextClient.get(key, defer.makeNodeResolver())
+  nextClient.get(key, function (response) {
+    defer.resolve(response.body ? response.body.toString('utf8') : undefined)
+  })
 
   // no promise currently exists, return the first in the chain
   if (!currentPromise) return defer.promise
@@ -78,18 +80,22 @@ CacheManager.prototype.mget = function (keys) {
     })
 }
 
-CacheManager.prototype.set = function (key, val, lifetime) {
+CacheManager.prototype.set = function (key, val, lifetimeMs) {
   if (!this._sortedClusters.length) return Q.resolve(true)
   var clients = this._getAllClientsForKeys([key])[key]
   var promises = []
 
   for (i = 0; i < clients.length; i++) {
-    var defer = Q.defer()
-    clients[i].set(key, val, lifetime || 0, defer.makeNodeResolver())
+    try {
+      var defer = Q.defer()
+      clients[i].set(key, val, 0x01, Math.floor(lifetimeMs ? lifetimeMs / 1000 : 86400), function (defer, response) {
+        defer.resolve(true)
+      }.bind(null, defer))
+      promises.push(defer.promise)
+    } catch (e) {
+      console.error(e)
+    }
 
-    promises.push(defer.promise.fail(function (e) {
-      return true
-    }))
   }
 
   return Q.all(promises).then(function () {
@@ -119,17 +125,18 @@ CacheManager.prototype.del = function (key) {
   if (!this._sortedClusters.length) return Q.resolve(true)
   var clients = this._getAllClientsForKeys([key])[key]
   var promises = []
+  var rand = Math.floor(Math.random() * 1000)
 
   for (i = 0; i < clients.length; i++) {
     var defer = Q.defer()
-    clients[i].delete(key, defer.makeNodeResolver())
-    promises.push(defer.promise.fail(function () {
-      return true
-    }))
+    clients[i].delete(key, function (defer, response) {
+      defer.resolve(true)
+    }.bind(null, defer))
+    promises.push(defer.promise)
   }
 
   return Q.all(promises).then(function () {
-    return true
+     return true
   })
 }
 

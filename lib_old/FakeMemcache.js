@@ -10,11 +10,11 @@ function FakeMemcache(port, host) {
 }
 util.inherits(FakeMemcache, events.EventEmitter)
 
-FakeMemcache.prototype.connect = function () {
-  this.emit('connect')
+FakeMemcache.prototype.connect = function (host, port, callback) {
+  callback()
 }
 
-FakeMemcache.prototype.end = function () {
+FakeMemcache.prototype.quit = function () {
   this.emit('close')
 }
 
@@ -26,27 +26,19 @@ FakeMemcache.prototype.forceError = function (e) {
   this.emit('error', e)
 }
 
-FakeMemcache.prototype.version = function (callback) {
-  callback(null, {})
-}
-
-FakeMemcache.prototype.set = function (key, val, lifetimeMs, callback) {
-  this._data[key] = val
-  callback(null, true)
+FakeMemcache.prototype.set = function (key, val, flags, lifetimeSeconds, callback) {
+  this._data[key] = new Buffer(String(val), 'utf8')
+  callback(true)
 }
 
 FakeMemcache.prototype.get = function (key, callback) {
-  if (this._data[key]) {
-    callback(null, this._data[key])
-  } else {
-    callback(null, undefined)
-  }
+  callback(this._data[key] ? {body: this._data[key]} : {})
 }
 
 FakeMemcache.prototype.delete = function (key, callback) {
   if (this._data[key]) delete this._data[key]
 
-  if (callback) callback(null, true)
+  if (callback) callback(true)
 }
 
 module.exports = FakeMemcache

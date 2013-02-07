@@ -1,7 +1,9 @@
 var zcache = require('../index')
 
-exports.testMemcacheConnection = function (test) {
-  var cacheInstance = new zcache.MemcacheConnection("localhost", 11212)
+/*
+exports.testConnectionWrapper = function (test) {
+  var wrappedCacheInstance = new zcache.MemcacheConnection("localhost", 11212)
+  var cacheInstance = new zcache.ConnectionWrapper(wrappedCacheInstance)
 
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
 
@@ -30,10 +32,11 @@ exports.testMemcacheConnection = function (test) {
       })
   })
 
-  cacheInstance.on('close', function () {
+  cacheInstance.on('destroy', function () {
     test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
     test.done()
   })
 
   cacheInstance.connect()
 }
+*/

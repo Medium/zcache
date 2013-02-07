@@ -1,9 +1,13 @@
 var zcache = require('../index')
 
-exports.testConnecting = function (test) {
+exports.testMemcacheConnection = function (test) {
   var connection = new zcache.MemcacheConnection("localhost", 11212)
 
+  test.equal(connection.isAvailable(), false, "Connection should not be available")
+
   connection.on('connect', function () {
+    test.equal(connection.isAvailable(), true, "Connection should be available")
+
     connection.set('abc', '123', 300000)
       .then(function () {
         return connection.mget(['abc'])
@@ -27,6 +31,7 @@ exports.testConnecting = function (test) {
   })
 
   connection.on('destroy', function () {
+    test.equal(connection.isAvailable(), false, "Connection should not be available")
     test.done()
   })
 

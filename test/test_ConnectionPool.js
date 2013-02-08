@@ -34,7 +34,6 @@ exports.testConnectionPool = function (test) {
       })
       .then(function (vals) {
         test.equal(vals[0], undefined)
-        console.log("DESTROY")
         cacheInstance.destroy()
       })
       .fail(function (e) {

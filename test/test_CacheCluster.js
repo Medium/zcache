@@ -17,6 +17,7 @@ exports.testCacheCluster = function (test) {
   })
   cacheInstance.setCapacity('localhost:11212', 10, {memcache: true}, 0)
   cacheInstance.setCapacity('localhost:11213', 5, {memcache: true}, 0)
+  cacheInstance.setCapacity('localhost:11212', 5, {memcache: true}, 0)
 
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
 

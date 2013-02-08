@@ -45,6 +45,8 @@ exports.testCacheCluster = function (test) {
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
 
   cacheInstance.on('connect', function () {
+    cacheInstance.removeAllListeners('connect')
+
     var defer = Q.defer()
     setTimeout(function () {
       defer.resolve(true)
@@ -62,6 +64,26 @@ exports.testCacheCluster = function (test) {
         promises.push(cacheInstance.set('mno', '567', 300000))
 
         return Q.all(promises)
+      })
+      .then(function () {
+        cacheInstance.disconnect()
+
+        // wait to ensure reconnection
+        var defer = Q.defer()
+        setTimeout(function () {
+          defer.resolve(true)
+        }, 200)
+        return defer.promise
+      })
+      .then(function () {
+        cacheInstance.connect()
+
+        // wait to ensure reconnection
+        var defer = Q.defer()
+        setTimeout(function () {
+          defer.resolve(true)
+        }, 200)
+        return defer.promise
       })
       .then(function () {
         return cacheInstance.mget(['abc', 'def', 'ghi', 'jkl', 'mno'])

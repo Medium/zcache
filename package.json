@@ -17,11 +17,12 @@
   }
   , "dependencies": {
       "node-memcache-parser-obvfork": "0.1.1",
-      "generic-pool": "2.0.3"
+      "generic-pool": "2.0.3",
+      "kew": "*",
+      "redis": "0.8.2"
   }
   , "devDependencies": {
-        "nodeunit": "0.7.4",
-        "kew": "*"
+        "nodeunit": "0.7.4"
     }
   , "scripts": {
       "test": "./node_modules/nodeunit/bin/nodeunit test"

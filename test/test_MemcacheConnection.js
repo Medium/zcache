@@ -1,4 +1,5 @@
 var zcache = require('../index')
+var Q = require('kew')
 
 exports.testMemcacheConnection = function (test) {
   var cacheInstance = new zcache.MemcacheConnection("localhost", 11212)
@@ -6,9 +7,30 @@ exports.testMemcacheConnection = function (test) {
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
 
   cacheInstance.on('connect', function () {
+    cacheInstance.removeAllListeners('connect')
     test.equal(cacheInstance.isAvailable(), true, "Connection should be available")
 
     cacheInstance.set('abc', '123', 300000)
+      .then(function () {
+        cacheInstance.disconnect()
+
+        // wait to ensure reconnection
+        var defer = Q.defer()
+        setTimeout(function () {
+          defer.resolve(true)
+        }, 200)
+        return defer.promise
+      })
+      .then(function () {
+        cacheInstance.connect()
+
+        // wait to ensure reconnection
+        var defer = Q.defer()
+        setTimeout(function () {
+          defer.resolve(true)
+        }, 200)
+        return defer.promise
+      })
       .then(function () {
         return cacheInstance.mget(['abc'])
       })

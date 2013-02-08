@@ -7,5 +7,9 @@ module.exports = {
 
   ConnectionWrapper: require('./lib/ConnectionWrapper'),
 
-  MemcacheConnection: require('./lib/MemcacheConnection')
+  MemcacheConnection: require('./lib/MemcacheConnection'),
+
+  RedisConnection: require('./lib/RedisConnection'),
+
+  RedundantCacheGroup: require('./lib/RedundantCacheGroup')
 }

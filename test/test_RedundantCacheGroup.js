@@ -42,6 +42,8 @@ exports.testRedundantCacheGroup = function (test) {
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
 
   cacheInstance.on('connect', function () {
+    cacheInstance.removeAllListeners('connect')
+
     var defer = Q.defer()
     setTimeout(function () {
       defer.resolve(true)
@@ -69,6 +71,18 @@ exports.testRedundantCacheGroup = function (test) {
         test.equal(vals[2], '789')
         test.equal(vals[3], '234')
         test.equal(vals[4], '567')
+
+        //disconnect the memcache cluster
+        memcacheCluster.disconnect()
+
+        // wait to ensure disconnection
+        var defer = Q.defer()
+        setTimeout(function () {
+          defer.resolve(true)
+        }, 100)
+        return defer.promise
+      })
+      .then(function () {
         return cacheInstance.del('abc')
       })
       .then(function () {
@@ -76,6 +90,22 @@ exports.testRedundantCacheGroup = function (test) {
       })
       .then(function (vals) {
         test.equal(vals[0], undefined)
+
+        // reconnect the memcache cluster
+        memcacheCluster.connect()
+
+        // wait to ensure reconnection
+        var defer = Q.defer()
+        setTimeout(function () {
+          defer.resolve(true)
+        }, 200)
+        return defer.promise
+      })
+      .then(function () {
+        return cacheInstance.mget(['abc'])
+      })
+      .then(function (val) {
+        test.equal(val, '123')
         cacheInstance.destroy()
       })
       .fail(function (e) {

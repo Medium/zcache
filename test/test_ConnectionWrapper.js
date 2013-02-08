@@ -8,6 +8,8 @@ exports.testConnectionWrapper = function (test) {
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
 
   var secondConnectHandler = function () {
+    cacheInstance.removeAllListeners('connect')
+
     cacheInstance.on('destroy', function () {
       test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
       test.done()
@@ -27,6 +29,26 @@ exports.testConnectionWrapper = function (test) {
         promises.push(cacheInstance.set('mno', '567', 300000))
 
         return Q.all(promises)
+      })
+      .then(function () {
+        cacheInstance.disconnect()
+
+        // wait to ensure reconnection
+        var defer = Q.defer()
+        setTimeout(function () {
+          defer.resolve(true)
+        }, 200)
+        return defer.promise
+      })
+      .then(function () {
+        cacheInstance.connect()
+
+        // wait to ensure reconnection
+        var defer = Q.defer()
+        setTimeout(function () {
+          defer.resolve(true)
+        }, 200)
+        return defer.promise
       })
       .then(function () {
         return cacheInstance.mget(['abc', 'def', 'ghi', 'jkl', 'mno'])

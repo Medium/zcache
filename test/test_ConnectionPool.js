@@ -1,4 +1,5 @@
 var zcache = require('../index')
+var Q = require('kew')
 
 exports.testConnectionPool = function (test) {
   var cacheInstance = new zcache.ConnectionPool({
@@ -19,14 +20,28 @@ exports.testConnectionPool = function (test) {
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
 
   cacheInstance.on('connect', function () {
-    test.equal(cacheInstance.isAvailable(), true, "Connection should be available")
-
-    cacheInstance.set('abc', '123', 300000)
+    Q.resolve(true)
       .then(function () {
-        return cacheInstance.mget(['abc'])
+        test.equal(cacheInstance.isAvailable(), true, "Connection should be available")
+
+        var promises = []
+        promises.push(cacheInstance.set('abc', '123', 300000))
+        promises.push(cacheInstance.set('def', '456', 300000))
+        promises.push(cacheInstance.set('ghi', '789', 300000))
+        promises.push(cacheInstance.set('jkl', '234', 300000))
+        promises.push(cacheInstance.set('mno', '567', 300000))
+
+        return Q.all(promises)
+      })
+      .then(function () {
+        return cacheInstance.mget(['abc', 'def', 'ghi', 'jkl', 'mno'])
       })
       .then(function (vals) {
         test.equal(vals[0], '123')
+        test.equal(vals[1], '456')
+        test.equal(vals[2], '789')
+        test.equal(vals[3], '234')
+        test.equal(vals[4], '567')
         return cacheInstance.del('abc')
       })
       .then(function () {

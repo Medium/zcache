@@ -1,8 +1,8 @@
 var zcache = require('../index')
 var Q = require('kew')
 
-exports.testCacheCluster = function (test) {
-  var cacheInstance = new zcache.CacheCluster({
+exports.testRedundantCacheGroup = function (test) {
+  var memcacheCluster = new zcache.CacheCluster({
     create: function (uri, opts, callback) {
       var parts = uri.split(':')
       var host = parts[0]
@@ -10,15 +10,7 @@ exports.testCacheCluster = function (test) {
 
       var poolInstance = new zcache.ConnectionPool({
         create: function (callback) {
-          var wrappedCacheInstance
-          if (opts.type === 'memcache') {
-            wrappedCacheInstance = new zcache.MemcacheConnection(host, port)
-          } else if (opts.type === 'redis') {
-            wrappedCacheInstance = new zcache.RedisConnection(host, port)
-          } else {
-            throw new Error('Unknown cache instance type')
-          }
-
+          var wrappedCacheInstance = new zcache.MemcacheConnection(host, port)
           var wrapperCacheInstance = new zcache.ConnectionWrapper(wrappedCacheInstance)
           wrapperCacheInstance.on('connect', function () {
             callback(null, wrapperCacheInstance)
@@ -38,9 +30,14 @@ exports.testCacheCluster = function (test) {
       poolInstance.connect()
     }
   })
-  cacheInstance.setCapacity('localhost:11212', 10, {type: 'memcache'}, 0)
-  cacheInstance.setCapacity('localhost:11213', 5, {type: 'memcache'}, 0)
-  cacheInstance.setCapacity('localhost:11212', 5, {type: 'memcache'}, 0)
+  memcacheCluster.setCapacity('localhost:11212', 5, {memcache: true}, 0)
+  memcacheCluster.setCapacity('localhost:11213', 5, {memcache: true}, 0)
+
+  var redisInstance = new zcache.RedisConnection('localhost', 6379)
+
+  var cacheInstance = new zcache.RedundantCacheGroup()
+  cacheInstance.add(redisInstance, 1)
+  cacheInstance.add(memcacheCluster, 2)
 
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
 

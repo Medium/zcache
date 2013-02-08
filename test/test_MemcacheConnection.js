@@ -30,7 +30,7 @@ exports.testMemcacheConnection = function (test) {
       })
   })
 
-  cacheInstance.on('close', function () {
+  cacheInstance.on('destroy', function () {
     test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
     test.done()
   })

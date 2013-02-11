@@ -30,8 +30,8 @@ exports.testRedundantCacheGroup = function (test) {
       poolInstance.connect()
     }
   })
-  memcacheCluster.setCapacity('localhost:11212', 5, {memcache: true}, 0)
-  memcacheCluster.setCapacity('localhost:11213', 5, {memcache: true}, 0)
+  memcacheCluster.setNodeCapacity('localhost:11212', 5, {memcache: true}, 0)
+  memcacheCluster.setNodeCapacity('localhost:11213', 5, {memcache: true}, 0)
 
   var redisInstance = new zcache.RedisConnection('localhost', 6379)
 

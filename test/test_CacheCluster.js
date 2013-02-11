@@ -38,9 +38,9 @@ exports.testCacheCluster = function (test) {
       poolInstance.connect()
     }
   })
-  cacheInstance.setCapacity('localhost:11212', 10, {type: 'memcache'}, 0)
-  cacheInstance.setCapacity('localhost:11213', 5, {type: 'memcache'}, 0)
-  cacheInstance.setCapacity('localhost:11212', 5, {type: 'memcache'}, 0)
+  cacheInstance.setNodeCapacity('localhost:11212', 10, {type: 'memcache'}, 0)
+  cacheInstance.setNodeCapacity('localhost:11213', 5, {type: 'memcache'}, 0)
+  cacheInstance.setNodeCapacity('localhost:11212', 5, {type: 'memcache'}, 0)
 
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
 

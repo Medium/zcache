@@ -18,7 +18,7 @@
   , "dependencies": {
       "node-memcache-parser-obvfork": "0.1.1",
       "generic-pool": "2.0.3",
-      "kew": "0.1.3",
+      "kew": "0.1.5",
       "redis": "0.8.2"
   }
   , "devDependencies": {

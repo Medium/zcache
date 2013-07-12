@@ -44,6 +44,17 @@ exports.testRedisConnection = function (test) {
       })
       .then(function (vals) {
         test.equal(vals[0], undefined)
+      })
+      .then(function () {
+        return cacheInstance.mset({a: '456', b: '789'}, 300000)
+      })
+      .then(function () {
+        return cacheInstance.mget(['a', 'b'])
+      })
+      .then(function (vals) {
+        test.equal(vals.length, 2, "Should have precisely 2 results")
+        test.equal(vals[0], '456')
+        test.equal(vals[1], '789')
         cacheInstance.destroy()
       })
       .fail(function (e) {

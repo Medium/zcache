@@ -46,7 +46,13 @@ exports.testRedisConnection = function (test) {
         test.equal(vals[0], undefined)
       })
       .then(function () {
-        return cacheInstance.mset({a: '456', b: '789'}, 300000)
+        return cacheInstance.mset([{
+          key: 'a',
+          value: '456'
+        }, {
+          key: 'b',
+          value: '789'
+        }], 300000)
       })
       .then(function () {
         return cacheInstance.mget(['a', 'b'])

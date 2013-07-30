@@ -1,19 +1,19 @@
 {
     "name": "zcache"
   , "description": "AWS zone-aware caching"
-  , "version": "0.2.2"
+  , "version": "0.2.3"
   , "homepage": "https://github.com/azulus/zcache"
   , "authors": [
     "Jeremy Stanley <github@azulus.com> (https://github.com/azulus)"
   ]
   , "contributors": [
-
+    "Artem Titoulenko <artem@medium.com> (https://github.com/ArtemTitoulenko)"
     ]
   , "keywords": ["zcache"]
   , "main": "lib/zcache.js"
   , "repository": {
       "type": "git"
-    , "url": "https://github.com/azulus/zcache.git"
+    , "url": "https://github.com/Obvious/zcache.git"
   }
   , "dependencies": {
       "node-memcache-parser-obvfork": "0.1.1",

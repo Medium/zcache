@@ -1,30 +1,30 @@
 {
-    "name": "zcache"
-  , "description": "AWS zone-aware caching"
-  , "version": "0.2.4"
-  , "homepage": "https://github.com/azulus/zcache"
-  , "authors": [
-    "Jeremy Stanley <github@azulus.com> (https://github.com/azulus)"
-  ]
-  , "contributors": [
-    "Artem Titoulenko <artem@medium.com> (https://github.com/ArtemTitoulenko)"
-    ]
-  , "keywords": ["zcache"]
-  , "main": "lib/zcache.js"
-  , "repository": {
-      "type": "git"
-    , "url": "https://github.com/Obvious/zcache.git"
+  "name": "zcache",
+  "description": "AWS zone-aware multi-layer cache",
+  "version": "0.2.5",
+  "homepage": "https://github.com/Obvious/zcache",
+  "authors": [
+    "Jeremy Stanley <github@azulus.com> (https://github.com/azulus)",
+    "Artem Titoulenko <artem@medium.com> (https://github.com/ArtemTitoulenko)",
+    "Xiao Ma <x@medium.com> (https://github.com/x-ma)"
+  ],
+  "keywords": ["zcache", "cache", "redis"],
+  "main": "lib/zcache.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Obvious/zcache.git"
+  },
+  "dependencies": {
+    "node-memcache-parser-obvfork": "0.1.1",
+    "generic-pool": "2.0.3",
+    "kew": "0.1.7",
+    "redis": "0.8.2",
+    "metrics": "0.1.6"
+  },
+  "devDependencies": {
+    "nodeunit": "0.7.4"
+  },
+  "scripts": {
+    "test": "./node_modules/nodeunit/bin/nodeunit test"
   }
-  , "dependencies": {
-      "node-memcache-parser-obvfork": "0.1.1",
-      "generic-pool": "2.0.3",
-      "kew": "0.1.7",
-      "redis": "0.8.2"
-  }
-  , "devDependencies": {
-        "nodeunit": "0.7.4"
-    }
-  , "scripts": {
-      "test": "./node_modules/nodeunit/bin/nodeunit test"
-    }
 }

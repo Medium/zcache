@@ -3,6 +3,7 @@ var Q = require('kew')
 
 exports.setUp = function (callback) {
   this.cI = new zcache.InMemoryCache()
+  this.cI.connect()
   callback()
 }
 
@@ -22,8 +23,8 @@ exports.testCacheSet = function (test) {
   test.done()
 }
 
-exports.testCacheTTLOverride = function (test) {
-  this.cI.overrideTTL(1) // super short
+exports.testCacheOverrideMaxAgeMs = function (test) {
+  this.cI.overrideMaxAgeMs(1) // super short
   this.cI.set('foo', 'bar')
 
   setTimeout(function () {

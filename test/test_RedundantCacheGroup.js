@@ -4,7 +4,9 @@ var Q = require('kew')
 module.exports = {
   setUp: function (callback) {
     this.memoryInstance1 = new zcache.InMemoryCache()
+    this.memoryInstance1.connect()
     this.memoryInstance2 = new zcache.InMemoryCache()
+    this.memoryInstance2.connect()
 
     this.cacheInstance = new zcache.RedundantCacheGroup()
     this.cacheInstance.add(this.memoryInstance1, 2)

@@ -44,7 +44,7 @@ exports.testRedisConnection = function (test) {
         return cacheInstance.mget(['abc'])
       })
       .then(function (vals) {
-        test.equal(vals[0], undefined)
+        test.equal(vals[0], null)
       })
       .then(function () {
         return cacheInstance.mset([{
@@ -56,17 +56,20 @@ exports.testRedisConnection = function (test) {
         }], 300000)
       })
       .then(function () {
-        return cacheInstance.mget(['a', 'b'])
+        return cacheInstance.mget(['a', 'b', 'c'])
       })
       .then(function (vals) {
-        test.equal(vals.length, 2, 'Should have precisely 2 results')
+        test.equal(vals.length, 3, 'Should have precisely 3 results')
         test.equal(vals[0], '456')
         test.equal(vals[1], '789')
+        test.equal(vals[2], null)
         test.equal(1, cacheInstance.getStats('set').count(),  'set() is called for once')
         test.equal(1, cacheInstance.getStats('mset').count(), 'mset() is called for once')
         test.equal(0, cacheInstance.getStats('get').count(),  'get() is not called')
         test.equal(3, cacheInstance.getStats('mget').count(), 'mget() is called for three times')
         test.equal(1, cacheInstance.getStats('del').count(),  'del() is call for once')
+        test.equal(5, cacheInstance.getAccessCount(), 'The number of cache access is 5')
+        test.equal(3, cacheInstance.getHitCount(), 'The number of cache hit is 3')
         return cacheInstance.getServerInfo()
       })
       .then(function (info) {

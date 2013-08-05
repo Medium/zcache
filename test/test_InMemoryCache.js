@@ -9,6 +9,7 @@ exports.setUp = function (callback) {
 
 exports.tearDown = function (callback) {
   this.cI.disconnect()
+  this.cI.destroy()
   callback()
 }
 
@@ -28,9 +29,12 @@ exports.testCacheOverrideMaxAgeMs = function (test) {
   this.cI.set('foo', 'bar')
 
   setTimeout(function () {
-    test.equal(this.cI.get('foo'), undefined, 'foo should have expired by now')
-    test.done()
-  }.bind(this), 2501)
+    this.cI.get('foo')
+      .then(function (data) {
+        test.equal(data, undefined, 'foo should have expired by now')
+        test.done()
+      })
+  }.bind(this), 2)
 }
 
 exports.testCacheSetReaperInterval = function (test) {
@@ -61,16 +65,22 @@ exports.testCacheSetReaperIntervalExpiringGet = function (test) {
 
   // undefined should be returned since the item has expired, but before the reaper could clean it
   setTimeout(function () {
-    test.equal(this.cI.get('foo'), undefined, 'foo should still be in the cache')
-    test.done()
+    this.cI.get('foo')
+      .then(function (data) {
+        test.equal(data, undefined, 'foo should still be in the cache')
+        test.done()
+      })
   }.bind(this), 750)
 }
 
 exports.testCacheGet = function (test) {
   this.cI._data['foo'] = 1
   this.cI._expireAt['foo'] = Date.now() + 1000
-  test.equal(this.cI.get('foo'), 1, '1 should be returned')
-  test.done()
+  this.cI.get('foo')
+    .then(function (data) {
+      test.equal(data, 1, '1 should be returned')
+      test.done()
+    })
 }
 
 exports.testCacheDel = function (test) {
@@ -122,8 +132,6 @@ exports.testCacheMgetMissing = function (test) {
         test.equal(keys[0], undefined, 'a should be undefined')
         test.equal(keys[1], undefined, 'b should be undefined')
         test.equal(keys[2], undefined, 'c should be undefined')
-      })
-      .fin(function () {
         test.done()
       })
   }.bind(this), 1101)

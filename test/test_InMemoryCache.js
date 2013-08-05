@@ -4,6 +4,7 @@ var Q = require('kew')
 exports.setUp = function (callback) {
   this.cI = new zcache.InMemoryCache()
   this.cI.connect()
+  this.cI.resetCount()
   callback()
 }
 
@@ -62,23 +63,29 @@ exports.testCacheSetReaperInterval = function (test) {
 exports.testCacheSetReaperIntervalExpiringGet = function (test) {
   this.cI.setReaperInterval(1000)
   this.cI.set('foo', 'bar', 500)
+  var self = this
 
   // undefined should be returned since the item has expired, but before the reaper could clean it
   setTimeout(function () {
-    this.cI.get('foo')
+    self.cI.get('foo')
       .then(function (data) {
         test.equal(data, undefined, 'foo should still be in the cache')
+        test.equal(1, self.cI.getAccessCount(), 'The number of accesses is 1')
+        test.equal(0, self.cI.getHitCount(), 'The number of hits is 0 - the cache entry has expired')
         test.done()
       })
-  }.bind(this), 750)
+  }, 750)
 }
 
 exports.testCacheGet = function (test) {
   this.cI._data['foo'] = 1
   this.cI._expireAt['foo'] = Date.now() + 1000
+  var self = this
   this.cI.get('foo')
     .then(function (data) {
       test.equal(data, 1, '1 should be returned')
+      test.equal(1, self.cI.getAccessCount(), 'The number of accesses is 1')
+      test.equal(1, self.cI.getHitCount(), 'The number of hits is 1')
       test.done()
     })
 }
@@ -106,15 +113,15 @@ exports.testCacheMset = function (test) {
 
 exports.testCacheMget = function (test) {
   this.cI.mset([{key: 'a', value: 1}, {key: 'b', value: 2}, {key: 'c', value: 3}], 1000)
-
+  var self = this
   this.cI.mget(['a', 'b', 'c'])
     .then(function (keys) {
       if (keys.length != 3) test.fail('there should be 3 items returned')
       test.equal(keys[0], 1, 'a should be 1')
       test.equal(keys[1], 2, 'b should be 2')
       test.equal(keys[2], 3, 'c should be 3')
-    })
-    .fin(function () {
+      test.equal(3, self.cI.getAccessCount(), 'The number of accesses is 3')
+      test.equal(3, self.cI.getHitCount(), 'The number of hits is 3')
       test.done()
     })
 }
@@ -124,15 +131,16 @@ exports.testCacheMgetMissing = function (test) {
 
   // the time passed in is ignored because overrideTTL was set
   this.cI.mset([{key: 'a', value: 1}, {key: 'b', value: 2}, {key: 'c', value: 3}], 100)
-
+  var self = this
   setTimeout(function () {
-    this.cI.mget(['a', 'b', 'c'])
+    self.cI.mget(['a', 'b', 'c'])
       .then(function (keys) {
-        if (keys.length != 3) test.fail('there should be 3 items returned')
         test.equal(keys[0], undefined, 'a should be undefined')
         test.equal(keys[1], undefined, 'b should be undefined')
         test.equal(keys[2], undefined, 'c should be undefined')
+        test.equal(3, self.cI.getAccessCount(), 'The number of accesses is 3')
+        test.equal(0, self.cI.getHitCount(), 'The number of hits is 0')
         test.done()
       })
-  }.bind(this), 1101)
+  }, 1101)
 }

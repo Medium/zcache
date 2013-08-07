@@ -20,8 +20,10 @@ exports.testInMemoryCache = function (test) {
 }
 
 exports.testCacheSet = function (test) {
+  test.equal(0, this.cI.getKeyCount(), 'There is no key in cache')
   this.cI.set('foo', 'bar', 10000)
   test.equal(this.cI._data['foo'], 'bar', 'bar should be returned')
+  test.equal(1, this.cI.getKeyCount(), 'There is 1 key in cache')
   test.done()
 }
 
@@ -108,6 +110,7 @@ exports.testCacheMset = function (test) {
   test.equal(this.cI._data['a'], 1, 'a should be 1')
   test.equal(this.cI._data['b'], 2, 'b should be 2')
   test.equal(this.cI._data['c'], 3, 'c should be 3')
+  test.equal(3, this.cI.getKeyCount(), 'There are 3 keys in cache')
   test.done()
 }
 

@@ -65,6 +65,15 @@ module.exports = {
       })
   },
 
+  testCacheMgetUndefinedMget: function (test) {
+    this.cacheInstance.mget(['foo', 'bar'])
+      .then(function (results) {
+        test.deepEqual(results[0], undefined, 'foo should be undefined')
+        test.deepEqual(results[1], undefined, 'bar should be undefined')
+        test.done()
+      })
+  },
+
   testCacheMgetMultipleSingleHolesStagger: function (test) {
     this.cacheInstance.set('one', 'one', 10000)
 
@@ -176,7 +185,7 @@ module.exports = {
   },
 
   testCacheMsetStagger: function (test) {
-    this.cacheInstance.mset([{key: 'foo', value: 'bar'}, {key: 'fah', value: 'bah'}])
+    this.cacheInstance.mset([{key: 'foo', value: 'bar'}, {key: 'fah', value: 'bah'}], 1000)
 
     test.equal(this.memoryInstance1._data['foo'], 'bar', 'bar should be in memoryInstance1')
     test.equal(this.memoryInstance2._data['foo'], 'bar', 'bar should be in memoryInstance2')

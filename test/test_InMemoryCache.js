@@ -27,6 +27,15 @@ exports.testCacheSet = function (test) {
   test.done()
 }
 
+exports.testCacheSetImproperMaxAge = function (test) {
+  var client = this
+  test.throws(function () {
+    client.cI.set('foo', 'bar')
+  })
+
+  test.done()
+}
+
 exports.testCacheOverrideMaxAgeMs = function (test) {
   this.cI.overrideMaxAgeMs(1) // super short
   this.cI.set('foo', 'bar')
@@ -34,7 +43,7 @@ exports.testCacheOverrideMaxAgeMs = function (test) {
   setTimeout(function () {
     this.cI.get('foo')
       .then(function (data) {
-        test.equal(data, undefined, 'foo should have expired by now')
+        test.deepEqual(data, undefined, 'foo should have expired by now')
         test.done()
       })
   }.bind(this), 2)
@@ -57,7 +66,7 @@ exports.testCacheSetReaperInterval = function (test) {
 
   // the item should be reaped after the reaper interval of 5000 ms
   setTimeout(function () {
-    test.equal(this.cI._data['foo'], undefined, 'foo should not be in the cache')
+    test.deepEqual(this.cI._data['foo'], undefined, 'foo should not be in the cache')
     test.done()
   }.bind(this), 3001)
 }
@@ -71,7 +80,7 @@ exports.testCacheSetReaperIntervalExpiringGet = function (test) {
   setTimeout(function () {
     self.cI.get('foo')
       .then(function (data) {
-        test.equal(data, undefined, 'foo should still be in the cache')
+        test.deepEqual(data, undefined, 'foo should still be in the cache')
         test.equal(1, self.cI.getAccessCount(), 'The number of accesses is 1')
         test.equal(0, self.cI.getHitCount(), 'The number of hits is 0 - the cache entry has expired')
         test.done()
@@ -92,10 +101,18 @@ exports.testCacheGet = function (test) {
     })
 }
 
+exports.testCacheGetundefined = function (test) {
+  this.cI.get('foo')
+    .then(function (data) {
+      test.deepEqual(data, undefined, 'foo should have returned undefined')
+      test.done()
+    })
+}
+
 exports.testCacheDel = function (test) {
   this.cI.set('foo', 1, 1000)
   this.cI.del('foo')
-  test.equal(this.cI._data['foo'], undefined, 'foo should have been deleted')
+  test.deepEqual(this.cI._data['foo'], undefined, 'foo should have been deleted')
   test.done()
 }
 
@@ -106,7 +123,7 @@ exports.testCacheMset = function (test) {
     {key: 'c', value: 3}
   ]
 
-  this.cI.mset(sampleKeys)
+  this.cI.mset(sampleKeys, 1000)
   test.equal(this.cI._data['a'], 1, 'a should be 1')
   test.equal(this.cI._data['b'], 2, 'b should be 2')
   test.equal(this.cI._data['c'], 3, 'c should be 3')
@@ -119,12 +136,34 @@ exports.testCacheMget = function (test) {
   var self = this
   this.cI.mget(['a', 'b', 'c'])
     .then(function (keys) {
-      if (keys.length != 3) test.fail('there should be 3 items returned')
+      test.equal(keys.length, 3, '3 items should have been returned')
       test.equal(keys[0], 1, 'a should be 1')
       test.equal(keys[1], 2, 'b should be 2')
       test.equal(keys[2], 3, 'c should be 3')
       test.equal(3, self.cI.getAccessCount(), 'The number of accesses is 3')
       test.equal(3, self.cI.getHitCount(), 'The number of hits is 3')
+      test.done()
+    })
+}
+
+exports.testCacheMgetReturnsUndefined = function (test) {
+  this.cI.mget(['a'])
+    .then(function (results) {
+      test.equal(results.length, 1, '1 key should have been returned')
+      test.deepEqual(results[0], undefined, 'the first result should be undefined')
+      test.done()
+    })
+}
+
+exports.testCacheMgetReturnUndefinedAndValid = function (test) {
+  this.cI.set('foo', 'bar', 5000)
+  test.equal(this.cI._data['foo'], 'bar', 'bar should have been set')
+
+  this.cI.mget(['NON', 'foo'])
+    .then(function (results) {
+      test.equal(results.length, 2, '2 keys should have been returned')
+      test.deepEqual(results[0], undefined, 'NON should have returned undefined')
+      test.deepEqual(results[1], 'bar', 'foo should have returned bar')
       test.done()
     })
 }
@@ -137,10 +176,11 @@ exports.testCacheMgetMissing = function (test) {
   var self = this
   setTimeout(function () {
     self.cI.mget(['a', 'b', 'c'])
-      .then(function (keys) {
-        test.equal(keys[0], undefined, 'a should be undefined')
-        test.equal(keys[1], undefined, 'b should be undefined')
-        test.equal(keys[2], undefined, 'c should be undefined')
+      .then(function (results) {
+        test.equal(results.length, 3, '3 results should have been returned')
+        test.deepEqual(results[0], undefined, 'a should be undefined')
+        test.deepEqual(results[1], undefined, 'b should be undefined')
+        test.deepEqual(results[2], undefined, 'c should be undefined')
         test.equal(3, self.cI.getAccessCount(), 'The number of accesses is 3')
         test.equal(0, self.cI.getHitCount(), 'The number of hits is 0')
         test.done()

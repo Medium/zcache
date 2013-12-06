@@ -11,7 +11,6 @@ exports.testRedisConnection = function (test) {
     cacheInstance.removeAllListeners('connect')
 
     test.equal(cacheInstance.isAvailable(), true, 'Connection should be available')
-
     cacheInstance.set('abc', '123', 300000)
       .then(function () {
         cacheInstance.disconnect()
@@ -67,6 +66,7 @@ exports.testRedisConnection = function (test) {
         test.equal(vals[1], '789')
         test.deepEqual(vals[2], 'null')
         test.deepEqual(vals[3], undefined)
+
         test.equal(cacheInstance.getStats('set').count(), 1, 'set() is called for once')
         test.equal(cacheInstance.getStats('mset').count(), 1, 'mset() is called for once')
         test.equal(cacheInstance.getStats('get').count(), 0, 'get() is not called')
@@ -74,6 +74,15 @@ exports.testRedisConnection = function (test) {
         test.equal(cacheInstance.getStats('del').count(), 1, 'del() is call for once')
         test.equal(cacheInstance.getAccessCount(), 6, 'The number of cache access is 6')
         test.equal(cacheInstance.getHitCount(), 4, 'The number of cache hit is 4')
+
+        // Just print out the stats and spot check by human before we can
+        // figure out a good way to systemtically test the stats.
+        console.log('get:', cacheInstance.getPrettyStatsString('get'))
+        console.log('mget:', cacheInstance.getPrettyStatsString('mget'))
+        console.log('set:', cacheInstance.getPrettyStatsString('set'))
+        console.log('mset:', cacheInstance.getPrettyStatsString('mset'))
+        console.log('del:', cacheInstance.getPrettyStatsString('del'))
+
         return cacheInstance.getServerInfo()
       })
       .then(function (info) {

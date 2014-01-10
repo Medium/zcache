@@ -6,6 +6,7 @@ module.exports = {
   MemcacheConnection: require('./lib/MemcacheConnection'),
   InMemoryCache: require('./lib/InMemoryCache'),
   RedisConnection: require('./lib/RedisConnection'),
+  FakeCache: require('./lib/FakeCache'),
   RedundantCacheGroup: require('./lib/RedundantCacheGroup'),
   RedisTimeoutError: require('./lib/RedisTimeoutError')
 }

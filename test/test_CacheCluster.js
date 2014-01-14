@@ -1,119 +1,145 @@
+// Copyright 2014 The Obvious Corporation.
+
+/**
+ * @fileoverview Testing the CacheCluster class
+ */
+
 var zcache = require('../index')
 var Q = require('kew')
+var nodeunitq = require('nodeunitq')
+var builder = new nodeunitq.Builder(exports)
+var logger = require('logg').getLogger('test CacheCluster')
 
-exports.testCacheCluster = function (test) {
-  var cacheInstance = new zcache.CacheCluster({
-    create: function (uri, opts, callback) {
-      var parts = uri.split(':')
-      var host = parts[0]
-      var port = parseInt(parts[1], 10)
+builder.add(function testSetAndGet(test) {
+  var cluster = new zcache.CacheCluster()
+  cluster.addNode('FakeCache1', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache2', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache3', new zcache.FakeCache(logger), 1, 0)
+  cluster.connect()
 
-      var poolInstance = new zcache.ConnectionPool({
-        create: function (callback) {
-          var wrappedCacheInstance
-          if (opts.type === 'memcache') {
-            wrappedCacheInstance = new zcache.MemcacheConnection(host, port)
-          } else if (opts.type === 'redis') {
-            wrappedCacheInstance = new zcache.RedisConnection(host, port)
-          } else {
-            throw new Error('Unknown cache instance type')
-          }
+  var setPromises = []
+  for (var i = 0; i < 100; i++) {
+    setPromises.push(cluster.set('key' + i, 'value' + i))
+  }
 
-          var wrapperCacheInstance = new zcache.ConnectionWrapper(wrappedCacheInstance)
-          wrapperCacheInstance.on('connect', function () {
-            callback(null, wrapperCacheInstance)
-          })
+  return Q.all(setPromises)
+    .then(function() {
+      var getPromises = []
+      for (var j = 0; j < 100; j++) {
+        getPromises.push(cluster.get('key' + j))
+      }
+      return Q.all(getPromises)
+    })
+    .then(function(data) {
+      for (var i = 0; i < 100; i++) {
+        test.equals('value' + i, data[i])
+      }
+    })
+})
 
-          wrapperCacheInstance.connect()
-        },
-        destroy: function (client) {
-          client.destroy()
+builder.add(function testMgetAndMget(test) {
+  var cluster = new zcache.CacheCluster()
+  cluster.addNode('FakeCache1', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache2', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache3', new zcache.FakeCache(logger), 1, 0)
+  cluster.connect()
+
+  var items = []
+  for (var i = 0; i < 100; i++) {
+    items.push({
+      key: 'key' + i,
+      value: 'value' + i
+    })
+  }
+
+  return cluster.mset(items)
+    .then(function() {
+      var keys = []
+      for (var j = 0; j < 100; j++) {
+        keys.push('key' + j)
+      }
+      return cluster.mget(keys)
+    })
+    .then(function(data) {
+      for (var i = 0; i < 100; i++) {
+        test.equals('value' + i, data[i])
+      }
+    })
+})
+
+builder.add(function testDel(test) {
+  var cluster = new zcache.CacheCluster()
+  cluster.addNode('FakeCache1', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache2', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache3', new zcache.FakeCache(logger), 1, 0)
+  cluster.connect()
+
+  var items = []
+  for (var i = 0; i < 100; i++) {
+    items.push({
+      key: 'key' + i,
+      value: 'value' + i
+    })
+  }
+
+  return cluster.mset(items)
+    .then(function() {
+      var delPromises = []
+      for (var i = 0; i < 100; i++) {
+        if (i % 2 === 0) {
+          delPromises.push(cluster.del('key' + i))
         }
-      })
+      }
+      return Q.all(delPromises)
+    })
+    .then(function () {
+      var keys = []
+      for (var i = 0; i < 100; i++) {
+        keys.push('key' + i)
+      }
+      return cluster.mget(keys)
+    })
+    .then(function(data) {
+      for (var i = 0; i < 100; i++) {
+        if (i % 2 === 0) {
+          test.equals('undefined', typeof data[i])
+        } else {
+          test.equals('value' + i, data[i])
+        }
+      }
+    })
+})
 
-      poolInstance.on('connect', function () {
-        callback(null, poolInstance)
-      })
+// We trust the hashring library for key distribution. This is more
+// of a sanity check to make sure we didn't break things. We are not
+// actually to test how evenly the keys are distributed.
+// This test case should be updated when we change the hashring
+// configuration, such as changing the underlying hash algorithm
+// or changing the number of replicas of each server.
+builder.add(function testKeyDistribution(test) {
+  var cluster = new zcache.CacheCluster()
+  cluster.addNode('FakeCache1', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache2', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache3', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache4', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache5', new zcache.FakeCache(logger), 1, 0)
+  cluster.connect()
 
-      poolInstance.connect()
-    }
-  })
-  cacheInstance.setNodeCapacity('localhost:11212', 10, {type: 'memcache'}, 0)
-  cacheInstance.setNodeCapacity('localhost:11213', 5, {type: 'memcache'}, 0)
-  cacheInstance.setNodeCapacity('localhost:11212', 5, {type: 'memcache'}, 0)
+  var items = []
+  for (var i = 0; i < 10000; i++) {
+    items.push({
+      key: 'key' + i,
+      value: 'value' + i
+    })
+  }
 
-  test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
+  return cluster.mset(items)
+    .then(function() {
+      test.equals(1793, Object.keys(cluster._servers['FakeCache1'].getData()).length)
+      test.equals(2121, Object.keys(cluster._servers['FakeCache2'].getData()).length)
+      test.equals(2260, Object.keys(cluster._servers['FakeCache3'].getData()).length)
+      test.equals(2050, Object.keys(cluster._servers['FakeCache4'].getData()).length)
+      test.equals(1776, Object.keys(cluster._servers['FakeCache5'].getData()).length)
+    })
 
-  cacheInstance.on('connect', function () {
-    cacheInstance.removeAllListeners('connect')
-
-    var defer = Q.defer()
-    setTimeout(function () {
-      defer.resolve(true)
-    }, 100)
-
-    defer
-      .then(function () {
-        test.equal(cacheInstance.isAvailable(), true, "Connection should be available")
-
-        var promises = []
-        promises.push(cacheInstance.set('abc', '123', 300000))
-        promises.push(cacheInstance.set('def', '456', 300000))
-        promises.push(cacheInstance.set('ghi', '789', 300000))
-        promises.push(cacheInstance.set('jkl', '234', 300000))
-        promises.push(cacheInstance.set('mno', '567', 300000))
-
-        return Q.all(promises)
-      })
-      .then(function () {
-        cacheInstance.disconnect()
-
-        // wait to ensure reconnection
-        var defer = Q.defer()
-        setTimeout(function () {
-          defer.resolve(true)
-        }, 200)
-        return defer.promise
-      })
-      .then(function () {
-        cacheInstance.connect()
-
-        // wait to ensure reconnection
-        var defer = Q.defer()
-        setTimeout(function () {
-          defer.resolve(true)
-        }, 200)
-        return defer.promise
-      })
-      .then(function () {
-        return cacheInstance.mget(['abc', 'def', 'ghi', 'jkl', 'mno'])
-      })
-      .then(function (vals) {
-        test.equal(vals[0], '123')
-        test.equal(vals[1], '456')
-        test.equal(vals[2], '789')
-        test.equal(vals[3], '234')
-        test.equal(vals[4], '567')
-        return cacheInstance.del('abc')
-      })
-      .then(function () {
-        return cacheInstance.mget(['abc'])
-      })
-      .then(function (vals) {
-        test.equal(vals[0], undefined)
-        cacheInstance.destroy()
-      })
-      .fail(function (e) {
-        console.error(e)
-        test.fail(e.message, e.stack)
-        test.done()
-      })
-  })
-
-  cacheInstance.on('destroy', function () {
-    test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
-    test.done()
-  })
-
-  cacheInstance.connect()
-}
+})

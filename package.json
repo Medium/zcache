@@ -17,7 +17,7 @@
   "dependencies": {
     "node-memcache-parser-obvfork": "0.1.1",
     "generic-pool": "2.0.3",
-    "kew": "0.1.7",
+    "kew": "0.3.1",
     "redis": "0.8.2",
     "metrics": "0.1.6",
     "hashring": "1.0.3"

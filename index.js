@@ -8,5 +8,5 @@ module.exports = {
   RedisConnection: require('./lib/RedisConnection'),
   FakeCache: require('./lib/FakeCache'),
   RedundantCacheGroup: require('./lib/RedundantCacheGroup'),
-  RedisTimeoutError: require('./lib/RedisTimeoutError')
+  TimeoutError: require('./lib/TimeoutError')
 }

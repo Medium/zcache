@@ -10,6 +10,11 @@ var nodeunitq = require('nodeunitq')
 var builder = new nodeunitq.Builder(exports)
 var logger = require('logg').getLogger('test CacheCluster')
 var PartialResultError = require('../lib/PartialResultError')
+var TimeoutError = require('../lib/TimeoutError')
+
+// Mock the setInterval so metrics will not hang the test
+global.setInterval = function () {}
+
 
 builder.add(function testSetAndGet(test) {
   var cluster = new zcache.CacheCluster()
@@ -142,6 +147,35 @@ builder.add(function testPartialMsetFailure(test) {
       var error = err.getError()
       test.deepEqual({}, data)
       test.ok(Object.keys(error).length > 0 && Object.keys(error).length < 40, 'Expect partial failures')
+    })
+})
+
+builder.add(function testTimeoutFailure(test) {
+  var cluster = new zcache.CacheCluster({requestTimeoutMs: 10})
+  var fakeCache1 = new zcache.FakeCache(logger)
+  cluster.addNode('FakeCache1', fakeCache1, 1, 0)
+  cluster.addNode('FakeCache2', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache3', new zcache.FakeCache(logger), 1, 0)
+  cluster.connect()
+
+  var items = []
+  for (var i = 0; i < 100; i++) {
+    items.push({
+      key: 'key' + i,
+      value: 'value' + i
+    })
+  }
+
+  fakeCache1.setLatencyMs(20)
+  return cluster.mset(items)
+    .then(function () {
+      test.fail('The mget() call is supposed to fail')
+    })
+    .fail(function (err) {
+      test.ok(err instanceof TimeoutError)
+      test.equals('mset Request timeout after 10 ms', err.message)
+      test.equals(1, cluster.getTimeoutCount('mset').count, 'The timeout count should be 1')
+      test.equals(0, cluster.getStats('mset').count(), 'There should be no stats data')
     })
 })
 

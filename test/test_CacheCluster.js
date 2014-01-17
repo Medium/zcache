@@ -15,7 +15,6 @@ var TimeoutError = require('../lib/TimeoutError')
 // Mock the setInterval so metrics will not hang the test
 global.setInterval = function () {}
 
-
 builder.add(function testSetAndGet(test) {
   var cluster = new zcache.CacheCluster()
   cluster.addNode('FakeCache1', new zcache.FakeCache(logger), 1, 0)
@@ -112,7 +111,7 @@ builder.add(function testPartialMgetFailure(test) {
         if (key in data) {
           test.equals('value' + i, data[key])
         } else {
-          test.ok(key in error)
+          test.equals('Fake Error', error[key].message)
         }
       }
       test.ok(Object.keys(data).length > 60 && Object.keys(data).length < 100, 'Expect partial failures')
@@ -145,7 +144,13 @@ builder.add(function testPartialMsetFailure(test) {
       test.ok(err instanceof PartialResultError)
       var data = err.getData()
       var error = err.getError()
-      test.deepEqual({}, data)
+
+      for (var i = 0; i < 100; i++) {
+        var key = 'key' + i
+        if (key in error) {
+          test.equals('Fake Error', error[key].message)
+        }
+      }
       test.ok(Object.keys(error).length > 0 && Object.keys(error).length < 40, 'Expect partial failures')
     })
 })
@@ -220,6 +225,107 @@ builder.add(function testDel(test) {
         }
       }
     })
+})
+
+builder.add(function testCornerCaseWithOnlyOneNode(test) {
+  var cluster = new zcache.CacheCluster()
+  var fakeCache = new zcache.FakeCache(logger)
+  cluster.addNode('FakeCache', fakeCache, 1, 0)
+  cluster.connect()
+
+  var items = []
+  for (var i = 0; i < 100; i++) {
+    items.push({
+      key: 'key' + i,
+      value: 'value' + i
+    })
+  }
+  var keys = items.map(function (item) {return item.key})
+
+  return cluster.mset(items)
+    .then(function () {
+      return cluster.mget(keys)
+    })
+    .then(function (data) {
+      test.equals(100, data.length, 'expect: # of returned value === # of keys')
+      for (var i = 0; i < 100; i++) {
+        test.equals('value' + i, data[i])
+      }
+
+      fakeCache.setFailureCount(1)
+      return cluster.mget(keys)
+    })
+    .fail(function (err) {
+      test.ok(err instanceof PartialResultError)
+      var data = err.getData()
+      var error = err.getError()
+
+      // Just one node, and it fails, so no data fetched
+      test.deepEqual({}, data)
+
+      // All the keys should map to an error
+      for (var i = 0; i < 100; i++) {
+        test.equals('Fake Error', error['key' + i].message)
+      }
+    })
+})
+
+builder.add(function testLatencyMeasurement(test) {
+  var cluster = new zcache.CacheCluster({requestTimeoutMs: 200})
+  var fakeCache1 = new zcache.FakeCache(logger).setLatencyMs(30)
+  var fakeCache2 = new zcache.FakeCache(logger).setLatencyMs(30)
+  cluster.addNode('FakeCache1', fakeCache1, 1, 0)
+  cluster.addNode('FakeCache2', fakeCache2, 1, 0)
+  cluster.connect()
+
+  var setPromises = []
+  for (var i = 0; i < 20; i++) {
+    setPromises.push(cluster.set('key' + i, 'value' + i))
+  }
+
+  return Q.all(setPromises)
+    .then(function() {
+      test.equal(20, cluster.getStats('set').count())
+      test.ok(cluster.getStats('set').mean() > 28)
+      test.ok(cluster.getStats('set').mean() < 33)
+
+      var getPromises = []
+      for (var i = 0; i < 20; i++) {
+        getPromises.push(cluster.get('key' + i))
+      }
+      return Q.all(getPromises)
+    })
+    .then(function() {
+      test.equal(20, cluster.getStats('get').count())
+      test.ok(cluster.getStats('get').mean() > 28)
+      test.ok(cluster.getStats('get').mean() < 33)
+
+      var items = []
+      for (var i = 0; i < 20; i++) {
+        items.push({
+          key: 'key' + i,
+          value: 'value' + i
+        })
+      }
+      return cluster.mset(items)
+    })
+    .then(function() {
+      test.equal(1, cluster.getStats('mset').count())
+      test.ok(cluster.getStats('mset').mean() > 28)
+      test.ok(cluster.getStats('mset').mean() < 33)
+
+      var keys = []
+      for (var i = 0; i < 20; i++) {
+        keys.push('key' + i)
+      }
+      return cluster.mget(keys)
+    })
+    .then(function() {
+      test.equal(1, cluster.getStats('mget').count())
+      test.ok(cluster.getStats('mget').mean() > 28)
+      test.ok(cluster.getStats('mget').mean() < 33)
+    })
+
 })
 
 // We trust the HashRing library for key distribution. This is more

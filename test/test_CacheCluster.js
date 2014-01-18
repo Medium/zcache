@@ -15,7 +15,6 @@ var TimeoutError = require('../lib/TimeoutError')
 // Mock the setInterval so metrics will not hang the test
 global.setInterval = function () {}
 
-
 builder.add(function testSetAndGet(test) {
   var cluster = new zcache.CacheCluster()
   cluster.addNode('FakeCache1', new zcache.FakeCache(logger), 1, 0)

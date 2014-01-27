@@ -104,6 +104,7 @@ builder.add(function testPartialMgetFailure(test) {
     })
     .fail(function (err) {
       test.ok(err instanceof PartialResultError)
+      test.equal(1, cluster.getPartialFailureCount('mget').count)
       var data = err.getData()
       var error = err.getError()
       for (var i = 0; i < 100; i++) {
@@ -142,6 +143,7 @@ builder.add(function testPartialMsetFailure(test) {
     })
     .fail(function (err) {
       test.ok(err instanceof PartialResultError)
+      test.equal(1, cluster.getPartialFailureCount('mset').count)
       var data = err.getData()
       var error = err.getError()
 

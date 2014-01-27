@@ -9,5 +9,6 @@ module.exports = {
   FakeCache: require('./lib/FakeCache'),
   RedundantCacheGroup: require('./lib/RedundantCacheGroup'),
   TimeoutError: require('./lib/TimeoutError'),
+  PartialResultError: require('./lib/PartialResultError'),
   MultiWriteCacheGroup: require('./lib/MultiWriteCacheGroup')
 }

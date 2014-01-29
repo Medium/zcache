@@ -104,7 +104,7 @@ builder.add(function testPartialMgetFailure(test) {
     })
     .fail(function (err) {
       test.ok(err instanceof PartialResultError)
-      test.equal(1, cluster.getPartialFailureCount('mget').count)
+      test.equal(1, cluster.getPartialFailureCount('mget'))
       var data = err.getData()
       var error = err.getError()
       for (var i = 0; i < 100; i++) {
@@ -143,7 +143,7 @@ builder.add(function testPartialMsetFailure(test) {
     })
     .fail(function (err) {
       test.ok(err instanceof PartialResultError)
-      test.equal(1, cluster.getPartialFailureCount('mset').count)
+      test.equal(1, cluster.getPartialFailureCount('mset'))
       var data = err.getData()
       var error = err.getError()
 
@@ -154,35 +154,6 @@ builder.add(function testPartialMsetFailure(test) {
         }
       }
       test.ok(Object.keys(error).length > 0 && Object.keys(error).length < 40, 'Expect partial failures')
-    })
-})
-
-builder.add(function testTimeoutFailure(test) {
-  var cluster = new zcache.CacheCluster({requestTimeoutMs: 10})
-  var fakeCache1 = new zcache.FakeCache(logger)
-  cluster.addNode('FakeCache1', fakeCache1, 1, 0)
-  cluster.addNode('FakeCache2', new zcache.FakeCache(logger), 1, 0)
-  cluster.addNode('FakeCache3', new zcache.FakeCache(logger), 1, 0)
-  cluster.connect()
-
-  var items = []
-  for (var i = 0; i < 100; i++) {
-    items.push({
-      key: 'key' + i,
-      value: 'value' + i
-    })
-  }
-
-  fakeCache1.setLatencyMs(20)
-  return cluster.mset(items)
-    .then(function () {
-      test.fail('The mget() call is supposed to fail')
-    })
-    .fail(function (err) {
-      test.ok(err instanceof TimeoutError)
-      test.equals('mset Request timeout after 10 ms', err.message)
-      test.equals(1, cluster.getTimeoutCount('mset').count, 'The timeout count should be 1')
-      test.equals(0, cluster.getStats('mset').count(), 'There should be no stats data')
     })
 })
 
@@ -289,7 +260,7 @@ builder.add(function testLatencyMeasurement(test) {
     .then(function() {
       test.equal(20, cluster.getStats('set').count())
       test.ok(cluster.getStats('set').mean() > 28)
-      test.ok(cluster.getStats('set').mean() < 33)
+      test.ok(cluster.getStats('set').mean() < 35)
 
       var getPromises = []
       for (var i = 0; i < 20; i++) {
@@ -300,7 +271,7 @@ builder.add(function testLatencyMeasurement(test) {
     .then(function() {
       test.equal(20, cluster.getStats('get').count())
       test.ok(cluster.getStats('get').mean() > 28)
-      test.ok(cluster.getStats('get').mean() < 33)
+      test.ok(cluster.getStats('get').mean() < 35)
 
       var items = []
       for (var i = 0; i < 20; i++) {
@@ -314,7 +285,7 @@ builder.add(function testLatencyMeasurement(test) {
     .then(function() {
       test.equal(1, cluster.getStats('mset').count())
       test.ok(cluster.getStats('mset').mean() > 28)
-      test.ok(cluster.getStats('mset').mean() < 33)
+      test.ok(cluster.getStats('mset').mean() < 35)
 
       var keys = []
       for (var i = 0; i < 20; i++) {
@@ -325,7 +296,7 @@ builder.add(function testLatencyMeasurement(test) {
     .then(function() {
       test.equal(1, cluster.getStats('mget').count())
       test.ok(cluster.getStats('mget').mean() > 28)
-      test.ok(cluster.getStats('mget').mean() < 33)
+      test.ok(cluster.getStats('mget').mean() < 35)
     })
 
 })
@@ -360,5 +331,42 @@ builder.add(function testKeyDistribution(test) {
       test.equals(2260, Object.keys(cluster._servers['FakeCache3'].getData()).length)
       test.equals(2050, Object.keys(cluster._servers['FakeCache4'].getData()).length)
       test.equals(1776, Object.keys(cluster._servers['FakeCache5'].getData()).length)
+    })
+})
+
+builder.add(function testTimeoutFailure(test) {
+  var cluster = new zcache.CacheCluster()
+  var fakeCache1 = new zcache.FakeCache(logger)
+  var fakeCache2 = new zcache.FakeCache(logger)
+  cluster.addNode('FakeCache1', fakeCache1, 1, 0)
+  cluster.addNode('FakeCache2', fakeCache2, 1, 0)
+  cluster.addNode('FakeCache3', new zcache.FakeCache(logger), 1, 0)
+  cluster.connect()
+
+  var items = []
+  for (var i = 0; i < 100; i++) {
+    items.push({
+      key: 'key' + i,
+      value: 'value' + i
+    })
+  }
+
+  // Both fakeCache1 and fakeCache2 will timeout in the next requests.
+  // We should see timeout count to be 2.
+  fakeCache1.setFailureCount(1)
+  fakeCache1.setNextFailure(new TimeoutError())
+  fakeCache2.setFailureCount(1)
+  fakeCache2.setNextFailure(new TimeoutError())
+
+  return cluster.mset(items)
+    .then(function () {
+      test.fail('The mget() call is supposed to fail')
+    })
+    .fail(function (err) {
+      test.equal(1, cluster.getPartialFailureCount('mset'), 'One partail failure from mset')
+      test.equal(2, cluster.getTimeoutCount('mset'), 'Two timeouts from all cache servers')
+
+      cluster.resetTimeoutCount('mset')
+      test.equal(0, cluster.getTimeoutCount('mset'), 'Return 0 after reset')
     })
 })

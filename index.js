@@ -4,6 +4,7 @@ module.exports = {
   ConnectionPool: require('./lib/ConnectionPool'),
   ConnectionWrapper: require('./lib/ConnectionWrapper'),
   MemcacheConnection: require('./lib/MemcacheConnection'),
+  MultiplexingCache: require('./lib/MultiplexingCache'),
   InMemoryCache: require('./lib/InMemoryCache'),
   RedisConnection: require('./lib/RedisConnection'),
   FakeCache: require('./lib/FakeCache'),

@@ -1,7 +1,7 @@
 {
   "name": "zcache",
   "description": "AWS zone-aware multi-layer cache",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "homepage": "https://github.com/Obvious/zcache",
   "authors": [
     "Jeremy Stanley <github@azulus.com> (https://github.com/azulus)",

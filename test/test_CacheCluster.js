@@ -73,6 +73,36 @@ builder.add(function testMgetAndMget(test) {
     })
 })
 
+builder.add(function testAccessAndHitCount(test) {
+  var cluster = new zcache.CacheCluster()
+  cluster.addNode('FakeCache1', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache2', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache3', new zcache.FakeCache(logger), 1, 0)
+  cluster.connect()
+
+  var items = []
+  for (var i = 0; i < 10; i++) {
+    items.push({
+      key: 'key' + i,
+      value: 'value' + i
+    })
+  }
+
+  return cluster.mset(items)
+    .then(function() {
+      var keys = []
+      for (var j = 0; j < 20; j++) {
+        keys.push('key' + j)
+      }
+      return cluster.mget(keys)
+    })
+    .then(function(data) {
+      test.equals(20, data.length, 'expect: # of returned value === # of keys')
+      test.equals(20, cluster.getAccessCount())
+      test.equals(10, cluster.getHitCount())
+    })
+})
+
 builder.add(function testPartialMgetFailure(test) {
   var cluster = new zcache.CacheCluster()
   var fakeCache1 = new zcache.FakeCache(logger)

@@ -99,3 +99,27 @@ builder.add(function testFailure(test) {
     })
     .fail(function () {})
 })
+
+builder.add(function testGetUri(test) {
+  var fakeCache1 = new zcache.FakeCache(logger)
+  var fakeCache2 = new zcache.FakeCache(logger)
+  var fakeCache3 = new zcache.FakeCache(logger)
+
+  var cluster1 = new zcache.CacheCluster()
+  cluster1.addNode('FakeCache1', fakeCache1, 1, 0)
+  cluster1.addNode('FakeCache2', fakeCache2, 1, 0)
+  cluster1.connect()
+
+  var cluster2 = new zcache.CacheCluster()
+  cluster2.addNode('FakeCache2', fakeCache2, 1, 0)
+  cluster2.addNode('FakeCache3', fakeCache3, 1, 0)
+  cluster2.connect()
+
+  var cacheGroup = new zcache.MultiWriteCacheGroup(cluster1)
+  cacheGroup.addWriteOnlyNode(cluster2)
+
+  test.equal('FakeCache2', cacheGroup.getUrisByKey('foo').sort().join(','), '"foo" exists on FakeCache2 in both clusters')
+  test.equal('FakeCache1,FakeCache3', cacheGroup.getUrisByKey('bar').sort().join(','), '"bar" exists on FakeCache1 and FakeCache3')
+
+  test.done()
+})

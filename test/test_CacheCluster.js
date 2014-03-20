@@ -230,6 +230,18 @@ builder.add(function testDel(test) {
     })
 })
 
+builder.add(function testGetUri(test) {
+  var cluster = new zcache.CacheCluster()
+  cluster.addNode('FakeCache1', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache2', new zcache.FakeCache(logger), 1, 0)
+  cluster.addNode('FakeCache3', new zcache.FakeCache(logger), 1, 0)
+  cluster.connect()
+
+  test.equal('FakeCache2', cluster.getUrisByKey('foo'), 'Key "foo" should be on cache 2')
+  test.equal('FakeCache1', cluster.getUrisByKey('bar'), 'Key "foo" should be on cache 1')
+  test.done()
+})
+
 builder.add(function testCornerCaseWithOnlyOneNode(test) {
   var cluster = new zcache.CacheCluster()
   var fakeCache = new zcache.FakeCache(logger)

@@ -20,20 +20,41 @@ exports.testInMemoryCache = function (test) {
 }
 
 exports.testCacheSet = function (test) {
+  var self = this
   test.equal(0, this.cI.getKeyCount(), 'There is no key in cache')
   this.cI.set('foo', 'bar', 10000)
-  test.equal(this.cI._data['foo'], 'bar', 'bar should be returned')
-  test.equal(1, this.cI.getKeyCount(), 'There is 1 key in cache')
-  test.done()
+    .then(function() {
+      test.equal(self.cI._data['foo'], 'bar', 'bar should be returned')
+      test.equal(1, self.cI.getKeyCount(), 'There is 1 key in cache')
+      test.done()
+    })
+}
+
+exports.testCacheMset = function (test) {
+  var self = this
+  var items = [
+    {key: 'key1', value: 'value1'},
+    {key: 'key2', value: 'value2'}
+  ]
+
+  test.equal(0, this.cI.getKeyCount(), 'There is no key in cache')
+  this.cI.mset(items, 10000)
+    .then(function() {
+      test.equal('value1', self.cI._data['key1'], '"key1" should be set')
+      test.equal('value2', self.cI._data['key2'], '"key2" should be set')
+      test.equal(2, self.cI.getKeyCount(), 'There should be two keys in cache')
+      test.done()
+    })
 }
 
 exports.testCacheSetImproperMaxAge = function (test) {
-  var client = this
-  test.throws(function () {
-    client.cI.set('foo', 'bar')
-  })
-
-  test.done()
+  this.cI.set('foo', 'bar')
+    .then(function () {
+      test.fail('Invalide max age parameter should fail the test')
+    })
+    .fail(function () {
+      test.done()
+    })
 }
 
 exports.testCacheOverrideMaxAgeMs = function (test) {
@@ -110,25 +131,15 @@ exports.testCacheGetundefined = function (test) {
 }
 
 exports.testCacheDel = function (test) {
-  this.cI.set('foo', 1, 1000)
-  this.cI.del('foo')
-  test.deepEqual(this.cI._data['foo'], undefined, 'foo should have been deleted')
-  test.done()
-}
-
-exports.testCacheMset = function (test) {
-  var sampleKeys = [
-    {key: 'a', value: 1},
-    {key: 'b', value: 2},
-    {key: 'c', value: 3}
-  ]
-
-  this.cI.mset(sampleKeys, 1000)
-  test.equal(this.cI._data['a'], 1, 'a should be 1')
-  test.equal(this.cI._data['b'], 2, 'b should be 2')
-  test.equal(this.cI._data['c'], 3, 'c should be 3')
-  test.equal(3, this.cI.getKeyCount(), 'There are 3 keys in cache')
-  test.done()
+  var self = this
+  self.cI.set('foo', 1, 1000)
+    .then(function () {
+      return self.cI.del('foo')
+    })
+    .then(function () {
+      test.deepEqual(self.cI._data['foo'], undefined, 'foo should have been deleted')
+      test.done()
+    })
 }
 
 exports.testCacheMget = function (test) {

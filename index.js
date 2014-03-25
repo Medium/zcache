@@ -11,5 +11,5 @@ module.exports = {
   RedundantCacheGroup: require('./lib/RedundantCacheGroup'),
   TimeoutError: require('./lib/TimeoutError'),
   PartialResultError: require('./lib/PartialResultError'),
-  MultiWriteCacheGroup: require('./lib/MultiWriteCacheGroup')
+  CachePair: require('./lib/CachePair')
 }

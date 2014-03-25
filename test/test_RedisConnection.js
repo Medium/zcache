@@ -103,3 +103,178 @@ exports.testRedisConnection = function (test) {
 
   cacheInstance.connect()
 }
+
+exports.testSetNotExist = function (test) {
+  var cacheInstance = new zcache.RedisConnection('localhost', 6379)
+
+  cacheInstance.on('connect', function () {
+    cacheInstance.removeAllListeners('connect')
+    test.equal(cacheInstance.isAvailable(), true, 'Connection should be available')
+
+    cacheInstance.set('abc', '123', 300000)
+      .then(function () {
+        return cacheInstance.set('abc', '456', 300000, true)
+      })
+      .then(function (val) {
+
+        return cacheInstance.get('abc')
+      })
+      .then(function (val) {
+        test.equal(val, '123')
+        cacheInstance.destroy()
+      })
+      .fail(function (e) {
+        console.error(e)
+        test.fail(e.message)
+        test.done()
+      })
+  })
+
+  cacheInstance.on('destroy', function () {
+    test.done()
+  })
+
+  cacheInstance.connect()
+}
+
+exports.testMsetNotExist = function (test) {
+  var cacheInstance = new zcache.RedisConnection('localhost', 6379)
+
+  cacheInstance.on('connect', function () {
+    cacheInstance.removeAllListeners('connect')
+    test.equal(cacheInstance.isAvailable(), true, 'Connection should be available')
+
+    var items = [
+      {key: 'key1', value: 'value1'},
+      {key: 'key3', value: 'value3'}
+    ]
+
+    Q.all([cacheInstance.del('key1'), cacheInstance.del('key2'), cacheInstance.del('key3'), cacheInstance.del('key4')])
+      .then(function () {
+        cacheInstance.mset(items, 300000)
+      })
+      .then(function () {
+        var items = [
+          {key: 'key1', value: 'value1_new'},
+          {key: 'key2', value: 'value2'},
+          {key: 'key3', value: 'value3_new'},
+          {key: 'key4', value: 'value4'}
+        ]
+        return cacheInstance.mset(items, 300000, true)
+      })
+      .then(function (val) {
+        return cacheInstance.mget(['key1', 'key2', 'key3', 'key4'])
+      })
+      .then(function (vals) {
+        test.deepEqual(['value1', 'value2', 'value3', 'value4'], vals)
+
+        cacheInstance.destroy()
+      })
+      .fail(function (e) {
+        console.error(e)
+        test.fail(e.message)
+        test.done()
+      })
+  })
+
+  cacheInstance.on('destroy', function () {
+    test.done()
+  })
+
+  cacheInstance.connect()
+}
+
+// Test .set() with TTL
+//  (1) set a key with 1 sec TTL
+//  (2) wait for 1.05 sec
+//  (3) get the key, and it should return 'undefined'.
+exports.testSetTimeout = function (test) {
+  var cacheInstance = new zcache.RedisConnection('localhost', 6379)
+
+  cacheInstance.on('connect', function () {
+    cacheInstance.removeAllListeners('connect')
+    test.equal(cacheInstance.isAvailable(), true, 'Connection should be available')
+
+    cacheInstance.set('abc', '123', 1000)
+      .then(function () {
+
+        return Q.delay(1050)
+      })
+      .then(function (val) {
+
+        return cacheInstance.get('abc')
+      })
+      .then(function (val) {
+        test.deepEqual(undefined, val, 'The "abc" key should have been expired after 1.05 sec')
+
+        cacheInstance.destroy()
+      })
+      .fail(function (e) {
+        console.error(e)
+        test.fail(e.message)
+        test.done()
+      })
+  })
+
+  cacheInstance.on('destroy', function () {
+    test.done()
+  })
+
+  cacheInstance.connect()
+}
+
+// Test .mset() with 'setWhenNotExist' set and TTL
+//  (1) set two keys with a long TTL
+//  (2) set two existing keys plus two more new keys with 'setWhenNotExist' set and with 1 sec TTL
+//  (3) wait for 1.05 sec.
+//  (4) the two new keys should have expired and the two old keys should still exist and have the old value
+exports.testMsetNotExistTimeout = function (test) {
+  var cacheInstance = new zcache.RedisConnection('localhost', 6379)
+
+  cacheInstance.on('connect', function () {
+    cacheInstance.removeAllListeners('connect')
+    test.equal(cacheInstance.isAvailable(), true, 'Connection should be available')
+
+    var items = [
+      {key: 'key1', value: 'value1'},
+      {key: 'key3', value: 'value3'}
+    ]
+
+    Q.all([cacheInstance.del('key1'), cacheInstance.del('key2'), cacheInstance.del('key3'), cacheInstance.del('key4')])
+      .then(function () {
+        cacheInstance.mset(items, 300000)
+      })
+      .then(function () {
+        var items = [
+          {key: 'key1', value: 'value1_new'},
+          {key: 'key2', value: 'value2'},
+          {key: 'key3', value: 'value3_new'},
+          {key: 'key4', value: 'value4'}
+        ]
+        return cacheInstance.mset(items, 1000, true)
+      })
+      .then(function (val) {
+        return Q.delay(1050)
+      })
+      .then(function (val) {
+        return cacheInstance.mget(['key1', 'key2', 'key3', 'key4'])
+      })
+      .then(function (vals) {
+        test.deepEqual(['value1', undefined, 'value3', undefined], vals, '"key2" and "key4" should have been expired at this moment')
+
+        cacheInstance.destroy()
+      })
+      .fail(function (e) {
+        console.error(e)
+        test.fail(e.message)
+        test.done()
+      })
+  })
+
+  cacheInstance.on('destroy', function () {
+    test.done()
+  })
+
+  cacheInstance.connect()
+}
+

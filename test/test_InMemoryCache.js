@@ -1,6 +1,8 @@
 var zcache = require('../index')
 var Q = require('kew')
 
+// TODO: these test cases should be using nodeunitq
+
 exports.setUp = function (callback) {
   this.cI = new zcache.InMemoryCache()
   this.cI.connect()
@@ -197,4 +199,40 @@ exports.testCacheMgetMissing = function (test) {
         test.done()
       })
   }, 1101)
+}
+
+exports.testSetNotExist = function (test) {
+  var cacheInstance = this.cI
+
+  cacheInstance.set('abc', '123', 30000)
+  cacheInstance.set('abc', '456', 30000, true)
+  cacheInstance.get('abc')
+    .then(function (val) {
+      test.equals('123', val, 'The value should still be "123"')
+      test.done()
+    })
+}
+
+exports.testMsetNotExist = function (test) {
+  var cacheInstance = this.cI
+
+  var items = [
+    {key: 'key1', value: 'value1'},
+    {key: 'key3', value: 'value3'}
+  ]
+  cacheInstance.mset(items, 30000)
+
+  items = [
+    {key: 'key1', value: 'value1_new'},
+    {key: 'key2', value: 'value2'},
+    {key: 'key3', value: 'value3_new'},
+    {key: 'key4', value: 'value4'}
+  ]
+  cacheInstance.mset(items, 30000, true)
+
+  cacheInstance.mget(['key1', 'key2', 'key3', 'key4'])
+    .then(function (values) {
+      test.deepEqual(['value1', 'value2', 'value3', 'value4'], values, 'key2 and key4 should be set')
+      test.done()
+    })
 }

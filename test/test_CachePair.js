@@ -1,14 +1,14 @@
 // Copyright 2014 The Obvious Corporation.
 
 /**
- * @fileoverview Testing the MultiWriteCacheGroup
+ * @fileoverview Testing the CachePair
  */
 
 var zcache = require('../index')
 var Q = require('kew')
 var nodeunitq = require('nodeunitq')
 var builder = new nodeunitq.Builder(exports)
-var logger = require('logg').getLogger('test CacheCluster')
+var logger = require('logg').getLogger('test CachePair')
 var PartialResultError = require('../lib/PartialResultError')
 var TimeoutError = require('../lib/TimeoutError')
 
@@ -18,15 +18,11 @@ global.setInterval = function () {}
 builder.add(function testGetAndGet(test) {
   var cache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var cache2 = new zcache.FakeCache(logger, 'FakeCache2')
-  var cache3 = new zcache.FakeCache(logger, 'FakeCache3')
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cache1)
-  cacheGroup.addWriteOnlyNode(cache2)
-  cacheGroup.addWriteOnlyNode(cache3)
+  var cacheGroup = new zcache.CachePair(cache1, cache2)
   cacheGroup.connect()
 
   cache1.setSync('key', 1)
   cache2.setSync('key', 2)
-  cache3.setSync('key', 3)
 
   return cacheGroup.get('key')
     .then(function (data) {
@@ -38,7 +34,6 @@ builder.add(function testGetAndGet(test) {
     .then(function () {
       test.equals(0, cache1.getSync('key'), 'The value in cache1 should be updated')
       test.equals(0, cache2.getSync('key'), 'The value in cache2 should be double-written')
-      test.equals(0, cache3.getSync('key'), 'The value in cache3 should be double-written')
 
       // Delete 'key', which should go to all instances
       return cacheGroup.del('key', 0)
@@ -46,17 +41,13 @@ builder.add(function testGetAndGet(test) {
     .then(function () {
       test.deepEqual(undefined, cache1.getSync('key'), 'The value in cache1 should be deleted')
       test.deepEqual(undefined, cache2.getSync('key'), 'The value in cache1 should be deleted')
-      test.deepEqual(undefined, cache3.getSync('key'), 'The value in cache1 should be deleted')
     })
 })
 
 builder.add(function testMgetAndMget(test) {
   var cache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var cache2 = new zcache.FakeCache(logger, 'FakeCache2')
-  var cache3 = new zcache.FakeCache(logger, 'FakeCache3')
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cache1)
-  cacheGroup.addWriteOnlyNode(cache2)
-  cacheGroup.addWriteOnlyNode(cache3)
+  var cacheGroup = new zcache.CachePair(cache1, cache2)
   cacheGroup.connect()
 
   var items = [
@@ -70,8 +61,6 @@ builder.add(function testMgetAndMget(test) {
       test.equals('value2', cache1.getSync('key2'))
       test.equals('value1', cache2.getSync('key1'))
       test.equals('value2', cache2.getSync('key2'))
-      test.equals('value1', cache3.getSync('key1'))
-      test.equals('value2', cache3.getSync('key2'))
 
       cache1.setSync('key1', 'value1-1')
       cache1.setSync('key2', 'value2-1')
@@ -87,9 +76,7 @@ builder.add(function testFailure(test) {
   var cache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var cache2 = new zcache.FakeCache(logger, 'FakeCache2')
   var cache3 = new zcache.FakeCache(logger, 'FakeCache3')
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cache1)
-  cacheGroup.addWriteOnlyNode(cache2)
-  cacheGroup.addWriteOnlyNode(cache3)
+  var cacheGroup = new zcache.CachePair(cache1, cache2)
   cacheGroup.connect()
 
   cache2.setFailureCount(1)
@@ -115,8 +102,7 @@ builder.add(function testGetUri(test) {
   cluster2.addNode('FakeCache3', fakeCache3, 1, 0)
   cluster2.connect()
 
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cluster1)
-  cacheGroup.addWriteOnlyNode(cluster2)
+  var cacheGroup = new zcache.CachePair(cluster1, cluster2)
 
   test.equal('FakeCache2', cacheGroup.getUrisByKey('foo').sort().join(','), '"foo" exists on FakeCache2 in both clusters')
   test.equal('FakeCache1,FakeCache3', cacheGroup.getUrisByKey('bar').sort().join(','), '"bar" exists on FakeCache1 and FakeCache3')
@@ -128,8 +114,7 @@ builder.add(function testAvoidRedudantMset(test) {
   var fakeCache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var fakeCache2 = new zcache.FakeCache(logger, 'FakeCache1')
 
-  var cacheGroup = new zcache.MultiWriteCacheGroup(fakeCache1)
-  cacheGroup.addWriteOnlyNode(fakeCache2)
+  var cacheGroup = new zcache.CachePair(fakeCache1, fakeCache2)
 
   var items = [
     {key: 'key1', value: 'value1'},
@@ -149,8 +134,7 @@ builder.add(function testAvoidRedudantSet(test) {
   var fakeCache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var fakeCache2 = new zcache.FakeCache(logger, 'FakeCache1')
 
-  var cacheGroup = new zcache.MultiWriteCacheGroup(fakeCache1)
-  cacheGroup.addWriteOnlyNode(fakeCache2)
+  var cacheGroup = new zcache.CachePair(fakeCache1, fakeCache2)
 
   return cacheGroup.set('key1', 'value1')
     .then(function() {
@@ -163,8 +147,7 @@ builder.add(function testAvoidRedudantDel(test) {
   var fakeCache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var fakeCache2 = new zcache.FakeCache(logger, 'FakeCache1')
 
-  var cacheGroup = new zcache.MultiWriteCacheGroup(fakeCache1)
-  cacheGroup.addWriteOnlyNode(fakeCache2)
+  var cacheGroup = new zcache.CachePair(fakeCache1, fakeCache2)
   fakeCache1.setSync('key1', 'value1')
   fakeCache2.setSync('key1', 'value1')
 
@@ -185,17 +168,15 @@ builder.add(function testAvoidRedudantMsetInCluster(test) {
   cluster1.addNode('FakeCache1', fakeCache1, 1, 0)
   cluster1.addNode('FakeCache2', fakeCache2, 1, 0)
   cluster1.addNode('FakeCache3', fakeCache3, 1, 0)
-  cluster1.connect()
 
   var cluster2 = new zcache.CacheCluster()
   cluster2.addNode('FakeCache1', fakeCache1, 1, 0)
   cluster2.addNode('FakeCache2', fakeCache2, 1, 0)
   cluster2.addNode('FakeCache3', fakeCache3, 1, 0)
   cluster2.addNode('FakeCache4', fakeCache4, 1, 0)
-  cluster2.connect()
 
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cluster1)
-  cacheGroup.addWriteOnlyNode(cluster2)
+  var cacheGroup = new zcache.CachePair(cluster1, cluster2)
+  cacheGroup.connect()
 
   var items = []
   for (var i = 0; i < 1000; i++) {
@@ -219,8 +200,7 @@ builder.add(function testAvoidRedudantMsetInCluster(test) {
 builder.add(function testGetFromReadSecondary(test) {
   var cache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var cache2 = new zcache.FakeCache(logger, 'FakeCache2')
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cache1)
-  cacheGroup.addWriteOnlyNode(cache2)
+  var cacheGroup = new zcache.CachePair(cache1, cache2)
   cacheGroup.enableReadFromSecondary(10)
   cacheGroup.connect()
 
@@ -241,8 +221,7 @@ builder.add(function testGetFromReadSecondary(test) {
 builder.add(function testGetFromReadSecondaryAndMiss(test) {
   var cache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var cache2 = new zcache.FakeCache(logger, 'FakeCache2')
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cache1)
-  cacheGroup.addWriteOnlyNode(cache2)
+  var cacheGroup = new zcache.CachePair(cache1, cache2)
   cacheGroup.enableReadFromSecondary(10)
   cacheGroup.connect()
 
@@ -263,8 +242,7 @@ builder.add(function testGetFromReadSecondaryAndMiss(test) {
 builder.add(function testGetFromReadSecondaryAndHit(test) {
   var cache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var cache2 = new zcache.FakeCache(logger, 'FakeCache2')
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cache1)
-  cacheGroup.addWriteOnlyNode(cache2)
+  var cacheGroup = new zcache.CachePair(cache1, cache2)
   cacheGroup.enableReadFromSecondary(10)
   cacheGroup.connect()
 
@@ -288,8 +266,7 @@ builder.add(function testGetFromReadSecondaryAndHit(test) {
 builder.add(function testMgetFromReadSecondaryAllInPrimary(test) {
   var cache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var cache2 = new zcache.FakeCache(logger, 'FakeCache2')
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cache1)
-  cacheGroup.addWriteOnlyNode(cache2)
+  var cacheGroup = new zcache.CachePair(cache1, cache2)
   cacheGroup.enableReadFromSecondary(10)
   cacheGroup.connect()
 
@@ -309,8 +286,7 @@ builder.add(function testMgetFromReadSecondaryAllInPrimary(test) {
 builder.add(function testMgetFromReadSecondaryAllInSecondary(test) {
   var cache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var cache2 = new zcache.FakeCache(logger, 'FakeCache2')
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cache1)
-  cacheGroup.addWriteOnlyNode(cache2)
+  var cacheGroup = new zcache.CachePair(cache1, cache2)
   cacheGroup.enableReadFromSecondary(10)
   cacheGroup.connect()
 
@@ -341,8 +317,7 @@ builder.add(function testMgetFromReadSecondaryAllInSecondary(test) {
 builder.add(function testMgetFromReadSecondaryMixed(test) {
   var cache1 = new zcache.FakeCache(logger, 'FakeCache1')
   var cache2 = new zcache.FakeCache(logger, 'FakeCache2')
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cache1)
-  cacheGroup.addWriteOnlyNode(cache2)
+  var cacheGroup = new zcache.CachePair(cache1, cache2)
   cacheGroup.enableReadFromSecondary(10)
   cacheGroup.connect()
 
@@ -378,8 +353,7 @@ builder.add(function testAvoidDoubleReadForGet(test) {
   fakeCache1.connect()
   fakeCache2.connect()
 
-  var cacheGroup = new zcache.MultiWriteCacheGroup(fakeCache1)
-  cacheGroup.addWriteOnlyNode(fakeCache2)
+  var cacheGroup = new zcache.CachePair(fakeCache1, fakeCache2)
   cacheGroup.enableReadFromSecondary(10)
 
   return cacheGroup.get('key')
@@ -413,8 +387,7 @@ builder.add(function testAvoidDoubleReadFromMget(test) {
   cluster2.addNode('FakeCache4', fakeCache4, 1, 0)
   cluster2.connect()
 
-  var cacheGroup = new zcache.MultiWriteCacheGroup(cluster1)
-  cacheGroup.addWriteOnlyNode(cluster2)
+  var cacheGroup = new zcache.CachePair(cluster1, cluster2)
   cacheGroup.enableReadFromSecondary(10)
 
   // Generate 1000 random key/value pairs. They all miss in the

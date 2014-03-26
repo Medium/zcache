@@ -9,7 +9,7 @@
     "Xiao Ma <x@medium.com> (https://github.com/x-ma)"
   ],
   "keywords": ["zcache", "cache", "redis"],
-  "main": "lib/zcache.js",
+  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/Obvious/zcache.git"

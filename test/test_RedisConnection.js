@@ -278,3 +278,42 @@ exports.testMsetNotExistTimeout = function (test) {
   cacheInstance.connect()
 }
 
+exports.testCounts = function (test) {
+  var cacheInstance = new zcache.RedisConnection('localhost', 6379)
+
+  cacheInstance.on('connect', function () {
+    cacheInstance.removeAllListeners('connect')
+    test.equal(cacheInstance.isAvailable(), true, 'Connection should be available')
+
+    var items = [
+      {key: 'key1', value: 'value1'},
+      {key: 'key3', value: 'value3'}
+    ]
+
+    Q.all([cacheInstance.del('key1'), cacheInstance.del('key2'), cacheInstance.del('key3'), cacheInstance.del('key4')])
+      .then(function () {
+        cacheInstance.mset(items, 300000)
+      })
+      .then(function () {
+        return cacheInstance.mget(['key1', 'key2', 'key3', 'key4'])
+      })
+      .then(function (vals) {
+        test.deepEqual(['value1', undefined, 'value3', undefined], vals, '"key2" and "key4" should have been expired at this moment')
+        test.equals(4, cacheInstance.getAccessCount())
+        test.equals(2, cacheInstance.getHitCount())
+        cacheInstance.destroy()
+      })
+      .fail(function (e) {
+        console.error(e)
+        test.fail(e.message)
+        test.done()
+      })
+  })
+
+  cacheInstance.on('destroy', function () {
+    test.done()
+  })
+
+  cacheInstance.connect()
+}
+

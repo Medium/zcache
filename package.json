@@ -1,8 +1,8 @@
 {
   "name": "zcache",
   "description": "AWS zone-aware multi-layer cache",
-  "version": "0.3.6",
-  "homepage": "https://github.com/Obvious/zcache",
+  "version": "0.4.0-alpha",
+  "homepage": "https://github.com/Medium/zcache",
   "authors": [
     "Jeremy Stanley <github@azulus.com> (https://github.com/azulus)",
     "Artem Titoulenko <artem@medium.com> (https://github.com/ArtemTitoulenko)",
@@ -12,7 +12,7 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Obvious/zcache.git"
+    "url": "https://github.com/Medium/zcache.git"
   },
   "dependencies": {
     "node-memcache-parser-obvfork": "0.1.1",

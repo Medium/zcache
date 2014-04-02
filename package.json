@@ -38,6 +38,6 @@
     "metrics": "./externs/metrics.js"
   },
   "scripts": {
-    "test": "./node_modules/nodeunit/bin/nodeunit test"
+    "test": "./node_modules/.bin/closure-npc --jscomp_error=checkTypes && ./node_modules/nodeunit/bin/nodeunit test"
   }
 }

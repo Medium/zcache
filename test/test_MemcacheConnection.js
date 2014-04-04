@@ -2,7 +2,7 @@ var zcache = require('../index')
 var Q = require('kew')
 
 exports.testMemcacheConnection = function (test) {
-  var cacheInstance = new zcache.MemcacheConnection("localhost", 11212)
+  var cacheInstance = new zcache.MemcacheConnection("localhost", 11211)
 
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
 
@@ -61,7 +61,7 @@ exports.testMemcacheConnection = function (test) {
 }
 
 exports.testMemcacheConnectionBase64 = function (test) {
-  var cacheInstance = new zcache.MemcacheConnection("localhost", 11212, 'base64')
+  var cacheInstance = new zcache.MemcacheConnection("localhost", 11211, 'base64')
 
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")
 

@@ -72,6 +72,7 @@ exports.testCacheOverrideMaxAgeMs = function (test) {
   }.bind(this), 2)
 }
 
+// TODO: This test case is fragile as it depends on the real system clock.
 exports.testCacheSetReaperInterval = function (test) {
   this.cI.setReaperInterval(3000)
   this.cI.set('foo', 'bar', 250)
@@ -87,11 +88,11 @@ exports.testCacheSetReaperInterval = function (test) {
     test.equal(this.cI._data['foo'], 'bar', 'foo should still be in the cache')
   }.bind(this), 2500)
 
-  // the item should be reaped after the reaper interval of 5000 ms
+  // the item should be reaped after the reaper interval of 3000 ms
   setTimeout(function () {
     test.deepEqual(this.cI._data['foo'], undefined, 'foo should not be in the cache')
     test.done()
-  }.bind(this), 3001)
+  }.bind(this), 3010)
 }
 
 exports.testCacheSetReaperIntervalExpiringGet = function (test) {

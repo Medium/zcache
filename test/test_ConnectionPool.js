@@ -4,7 +4,7 @@ var Q = require('kew')
 exports.testConnectionPool = function (test) {
   var cacheInstance = new zcache.ConnectionPool({
     create: function (callback) {
-      var wrappedCacheInstance = new zcache.MemcacheConnection("localhost", 11212)
+      var wrappedCacheInstance = new zcache.MemcacheConnection("localhost", 11211)
       var wrapperCacheInstance = new zcache.ConnectionWrapper(wrappedCacheInstance)
       wrapperCacheInstance.on('connect', function () {
         callback(null, wrapperCacheInstance)

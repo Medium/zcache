@@ -2,7 +2,7 @@ var zcache = require('../index')
 var Q = require('kew')
 
 exports.testConnectionWrapper = function (test) {
-  var wrappedCacheInstance = new zcache.MemcacheConnection("localhost", 11212)
+  var wrappedCacheInstance = new zcache.MemcacheConnection("localhost", 11211)
   var cacheInstance = new zcache.ConnectionWrapper(wrappedCacheInstance)
 
   test.equal(cacheInstance.isAvailable(), false, "Connection should not be available")

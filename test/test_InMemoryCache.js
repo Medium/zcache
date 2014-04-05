@@ -1,9 +1,12 @@
 var zcache = require('../index')
 var Q = require('kew')
+var sinon = require('sinon')
 
 // TODO: these test cases should be using nodeunitq
+var clock
 
 exports.setUp = function (callback) {
+  clock = sinon.useFakeTimers()
   this.cI = new zcache.InMemoryCache()
   this.cI.connect()
   this.cI.resetCount()
@@ -13,6 +16,7 @@ exports.setUp = function (callback) {
 exports.tearDown = function (callback) {
   this.cI.disconnect()
   this.cI.destroy()
+  clock.restore()
   callback()
 }
 
@@ -70,9 +74,10 @@ exports.testCacheOverrideMaxAgeMs = function (test) {
         test.done()
       })
   }.bind(this), 2)
+
+  clock.tick(2)
 }
 
-// TODO: This test case is fragile as it depends on the real system clock.
 exports.testCacheSetReaperInterval = function (test) {
   this.cI.setReaperInterval(3000)
   this.cI.set('foo', 'bar', 250)
@@ -92,7 +97,9 @@ exports.testCacheSetReaperInterval = function (test) {
   setTimeout(function () {
     test.deepEqual(this.cI._data['foo'], undefined, 'foo should not be in the cache')
     test.done()
-  }.bind(this), 3010)
+  }.bind(this), 3000)
+
+  clock.tick(3000)
 }
 
 exports.testCacheSetReaperIntervalExpiringGet = function (test) {
@@ -110,6 +117,8 @@ exports.testCacheSetReaperIntervalExpiringGet = function (test) {
         test.done()
       })
   }, 750)
+
+  clock.tick(750)
 }
 
 exports.testCacheGet = function (test) {
@@ -200,6 +209,8 @@ exports.testCacheMgetMissing = function (test) {
         test.done()
       })
   }, 1101)
+
+  clock.tick(1101)
 }
 
 exports.testSetNotExist = function (test) {

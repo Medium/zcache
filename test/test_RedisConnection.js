@@ -1,8 +1,10 @@
 var zcache = require('../index')
 var ServerInfo = require('../lib/ServerInfo')
 var Q = require('kew')
+var nodeunitq = require('nodeunitq')
+var builder = new nodeunitq.Builder(exports)
 
-exports.testRedisConnection = function (test) {
+builder.add(function testRedisConnection(test) {
   var cacheInstance = new zcache.RedisConnection('localhost', 6379)
 
   test.equal(cacheInstance.isAvailable(), false, 'Connection should not be available')
@@ -102,9 +104,9 @@ exports.testRedisConnection = function (test) {
   })
 
   cacheInstance.connect()
-}
+})
 
-exports.testSetNotExist = function (test) {
+builder.add(function testSetNotExist(test) {
   var cacheInstance = new zcache.RedisConnection('localhost', 6379)
 
   cacheInstance.on('connect', function () {
@@ -135,9 +137,9 @@ exports.testSetNotExist = function (test) {
   })
 
   cacheInstance.connect()
-}
+})
 
-exports.testMsetNotExist = function (test) {
+builder.add(function testMsetNotExist(test) {
   var cacheInstance = new zcache.RedisConnection('localhost', 6379)
 
   cacheInstance.on('connect', function () {
@@ -182,13 +184,13 @@ exports.testMsetNotExist = function (test) {
   })
 
   cacheInstance.connect()
-}
+})
 
 // Test .set() with TTL
 //  (1) set a key with 1 sec TTL
 //  (2) wait for 1.05 sec
 //  (3) get the key, and it should return 'undefined'.
-exports.testSetTimeout = function (test) {
+builder.add(function testSetTimeout(test) {
   var cacheInstance = new zcache.RedisConnection('localhost', 6379)
 
   cacheInstance.on('connect', function () {
@@ -221,14 +223,14 @@ exports.testSetTimeout = function (test) {
   })
 
   cacheInstance.connect()
-}
+})
 
 // Test .mset() with 'setWhenNotExist' set and TTL
 //  (1) set two keys with a long TTL
 //  (2) set two existing keys plus two more new keys with 'setWhenNotExist' set and with 1 sec TTL
 //  (3) wait for 1.05 sec.
 //  (4) the two new keys should have expired and the two old keys should still exist and have the old value
-exports.testMsetNotExistTimeout = function (test) {
+builder.add(function testMsetNotExistTimeout(test) {
   var cacheInstance = new zcache.RedisConnection('localhost', 6379)
 
   cacheInstance.on('connect', function () {
@@ -276,9 +278,9 @@ exports.testMsetNotExistTimeout = function (test) {
   })
 
   cacheInstance.connect()
-}
+})
 
-exports.testCounts = function (test) {
+builder.add(function testCounts(test) {
   var cacheInstance = new zcache.RedisConnection('localhost', 6379)
 
   cacheInstance.on('connect', function () {
@@ -315,5 +317,4 @@ exports.testCounts = function (test) {
   })
 
   cacheInstance.connect()
-}
-
+})

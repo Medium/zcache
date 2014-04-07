@@ -71,12 +71,12 @@ exports.testConnectionPool = function (test) {
       })
       .then(function (vals) {
         test.equal(vals[0], undefined)
-        cacheInstance.destroy()
       })
       .fail(function (e) {
-        console.error(e)
         test.fail(e.message)
-        test.done()
+      })
+      .fin(function () {
+        cacheInstance.destroy()
       })
   })
 

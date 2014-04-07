@@ -3,6 +3,7 @@ var ServerInfo = require('../lib/ServerInfo')
 var Q = require('kew')
 var nodeunitq = require('nodeunitq')
 var builder = new nodeunitq.Builder(exports)
+var redis = require('redis')
 
 builder.add(function testRedisConnection(test) {
   var cacheInstance = new zcache.RedisConnection('localhost', 6379)
@@ -48,6 +49,7 @@ builder.add(function testRedisConnection(test) {
         test.deepEqual(vals[0], undefined)
       })
       .then(function () {
+
         return cacheInstance.mset([{
           key: 'a',
           value: '456'
@@ -318,3 +320,195 @@ builder.add(function testCounts(test) {
 
   cacheInstance.connect()
 })
+
+
+// Helper function to test all the scenarios of compression, off, on, and dual mode
+function runCommonTest(cacheInstancePut, cacheInstanceGet, test, compressionFlag) {
+  var bigDeferred = Q.defer()
+
+  // longVal will have a length of 1180 after the for loop is executed, making it longer than the pivot
+  var longVal = 'A long string that should be compressed because it is greater than 750 chars'
+  for (i = 0; i < 4; i++) { 
+   longVal = longVal.concat(longVal) 
+  }
+  var longValOn = '@snappy@wAnwPEEgbG9uZyBzdHJpbmcgdGhhdCBzaG91bGQgYmUgY29tcHJlc3NlZCBiZWNhdXNlIGl0IGlzIGdyZWF0ZXIBMChuIDc1MCBjaGFyc/5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAM5MAA=='
+  var tinyVal = 'tiny'
+  var tinyValOn = '@orig@tiny'
+  var nullVal = 'null'
+  var undefinedVal = 'undefined'
+    
+  var items = [
+    {key: 'longValue2', value: longVal},
+    {key: 'tinyValue2', value: tinyVal}
+  ]
+   
+  var testKeys = ['longValue', 'tinyValue', 'longValue2', 'tinyValue2', 'nullValue', 'undefinedValue']
+  var expValsWithoutCompression = [longVal, tinyVal, longVal, tinyVal, nullVal, undefinedVal]
+  var expValsWithCompression = [longValOn, tinyValOn, longValOn, tinyValOn, nullVal, undefinedVal]
+  var expVals = compressionFlag ? expValsWithCompression : expValsWithoutCompression
+
+  var populateSetterFuncs = function() {
+    return [ 
+      cacheInstancePut.set('longValue', longVal, 100000),
+      cacheInstancePut.set('tinyValue', tinyVal, 100000),
+      cacheInstancePut.set('nullValue', null, 100000),
+      cacheInstancePut.set('undefinedValue', undefined, 100000),
+      cacheInstancePut.mset(items, 100000) 
+    ]
+  }
+
+  var redisClient = redis.createClient(6379, 'localhost')
+  redisClient.on('error', function (err) {
+     console.log("error event - " + err)
+  })
+
+  var destroyRedisClient = function () {
+    redisClient.quit()
+    delete redisClient
+    return bigDeferred.resolve()
+  }
+
+  Q.all(populateSetterFuncs()).then(function () {
+    //Retrieve all items from redis directly to inspect format
+    var deferred = Q.defer()
+    redisClient.mget(testKeys, function(err, value) {
+          return deferred.resolve(value)
+    })
+    return deferred.promise
+        
+   }).then(function (vals) {
+       // confirm cache entries look good
+       test.deepEqual(expVals, vals)
+       return Q.resolve() 
+   }).then(function () { return cacheInstanceGet.get('longValue')
+   }).then(function (val) {
+       // confirm get works   
+       test.equal(longVal, val)  
+       return cacheInstanceGet.mget(testKeys)
+   }).then(function (vals) {
+       // confirm mget works
+       test.deepEqual(expValsWithoutCompression, vals)
+       destroyRedisClient()
+   }) 
+   .fail(function (e) {
+       console.error(e)
+       test.fail(e.message)
+       destroyRedisClient()
+   })  
+
+   return bigDeferred.promise  
+}
+
+// Test 1: Compression Off
+builder.add(function testCompressionOff(test) {
+  var cacheInstance = new zcache.RedisConnection('localhost', 6379, {requestTimeoutMs : 100})
+
+  cacheInstance.on('connect', function () {
+    cacheInstance.removeAllListeners('connect')
+    test.equal(cacheInstance.isAvailable(), true, 'Connection should be available')
+    runCommonTest(cacheInstance, cacheInstance, test, false)
+      .fin(function () {
+        cacheInstance.destroy()
+      })  
+  })
+
+  cacheInstance.on('destroy', function () {
+    test.done()
+  })
+
+  cacheInstance.connect()
+})
+
+// Test 2: Compression On
+builder.add(function testCompressionOn(test) {
+  var cacheInstance = new zcache.RedisConnection('localhost', 6379, {compressionEnabled : true, requestTimeoutMs : 100})
+
+  cacheInstance.on('connect', function () {
+    cacheInstance.removeAllListeners('connect')
+    test.equal(cacheInstance.isAvailable(), true, 'Connection should be available')
+    runCommonTest(cacheInstance, cacheInstance, test, true)
+      .fin(function () {
+         cacheInstance.destroy()
+      })
+  })
+
+  cacheInstance.on('destroy', function () {
+    test.done()
+  })
+
+  cacheInstance.connect()
+})
+
+// Test 3: Writing Client compression Off, Reading Client compression On
+builder.add(function testCompressionPutOffGetOn(test) {
+  var cacheInstancePut = new zcache.RedisConnection('localhost', 6379, {requestTimeoutMs : 100})
+  var cacheInstanceGet = new zcache.RedisConnection('localhost', 6379, {compressionEnabled : true, requestTimeoutMs : 100})
+
+  cacheInstancePut.on('connect', function () {
+    cacheInstancePut.removeAllListeners('connect')
+    test.equal(cacheInstancePut.isAvailable(), true, 'Connection should be available')
+    cacheInstanceGet.connect()
+  })
+
+  cacheInstanceGet.on('connect', function () {
+    cacheInstanceGet.removeAllListeners('connect')
+    test.equal(cacheInstanceGet.isAvailable(), true, 'Connection should be available')
+    runCommonTest(cacheInstancePut, cacheInstanceGet, test, false)
+      .fin(function () {
+         cacheInstancePut.destroy()
+         cacheInstanceGet.destroy()
+      }) 
+  })
+
+  var count = 0
+  var destroy = function () { 
+    if (++count === 2) test.done() 
+  }
+
+  cacheInstancePut.on('destroy', function() {
+    destroy()
+  })
+  cacheInstanceGet.on('destroy', function () {
+     destroy()
+  })
+
+  cacheInstancePut.connect()
+})
+
+// Test 4: Writing Client compression On, Reading Client compression Off
+builder.add(function testCompressionPutOnGetOff(test) {
+  var cacheInstanceGet = new zcache.RedisConnection('localhost', 6379, {requestTimeoutMs : 100})
+  var cacheInstancePut = new zcache.RedisConnection('localhost', 6379, {compressionEnabled : true, requestTimeoutMs : 100})
+
+  cacheInstancePut.on('connect', function () {
+    cacheInstancePut.removeAllListeners('connect')
+    test.equal(cacheInstancePut.isAvailable(), true, 'Connection should be available')
+    cacheInstanceGet.connect()
+  })
+
+  cacheInstanceGet.on('connect', function () {
+    cacheInstanceGet.removeAllListeners('connect')
+    test.equal(cacheInstanceGet.isAvailable(), true, 'Connection should be available')
+    runCommonTest(cacheInstancePut, cacheInstanceGet, test, true)
+      .fin(function () {
+         cacheInstancePut.destroy()
+         cacheInstanceGet.destroy()         
+      })
+  })
+ 
+  var count = 0
+  var destroy = function () { 
+   if (++count === 2) test.done() 
+  }
+
+  cacheInstancePut.on('destroy', function() {
+    destroy()
+  })
+  cacheInstanceGet.on('destroy', function () {
+    destroy()
+  })
+
+  cacheInstancePut.connect()
+})
+
+

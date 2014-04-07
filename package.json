@@ -1,7 +1,7 @@
 {
   "name": "zcache",
   "description": "AWS zone-aware multi-layer cache",
-  "version": "0.4.0-alpha",
+  "version": "0.4.0-beta",
   "homepage": "https://github.com/Medium/zcache",
   "authors": [
     "Jeremy Stanley <github@azulus.com> (https://github.com/azulus)",
@@ -21,7 +21,8 @@
     "redis": "0.8.2",
     "hiredis": "0.1.16",
     "metrics": "0.1.6",
-    "hashring": "1.0.3"
+    "hashring": "1.0.3",
+    "snappy": "2.1.2"
   },
   "devDependencies": {
     "nodeunit": "0.7.4",
@@ -36,7 +37,8 @@
     "hashring": "./externs/hashring.js",
     "node-memcache-parser-obvfork": "./externs/node-memcache-parser-obvfork.js",
     "generic-pool": "./externs/generic-pool.js",
-    "metrics": "./externs/metrics.js"
+    "metrics": "./externs/metrics.js",
+    "snappy": "./externs/snappy.js"
   },
   "scripts": {
     "test": "./node_modules/.bin/closure-npc --jscomp_error=checkTypes && ./node_modules/nodeunit/bin/nodeunit test"

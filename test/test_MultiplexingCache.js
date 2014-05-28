@@ -158,3 +158,24 @@ builder.add(function testConcurrentMGetsWithMSet(test) {
     test.deepEqual(results[1], ['1', '20', '30', '4'])
   })
 })
+
+
+builder.add(function testConcurrentMGetsWithExceptions(test) {
+  fake.setSync('a', '1')
+  fake.setSync('b', '2')
+  fake.setSync('c', '3')
+  fake.setSync('d', '4')
+  fake.setSync('e', '5')
+  fake.setSync('f', '6')
+  fake.setSync('g', '7')
+
+  fake.setFailureCount(1)
+  var p1 = cache.mget(['a', 'b', 'c'])
+  var p2 = cache.mget(['b', 'c', 'd'])
+  var p3 = cache.mget(['e', 'f', 'g'])
+  return Q.all([p1, p2, p3]).then(function (results) {
+    test.deepEqual(results[0], [undefined, undefined, undefined])
+    test.deepEqual(results[1], [undefined, undefined, '4'])
+    test.deepEqual(results[2], ['5', '6', '7'])
+  })
+})

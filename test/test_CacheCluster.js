@@ -187,6 +187,37 @@ builder.add(function testPartialMsetFailure(test) {
     })
 })
 
+builder.add(function testMergePartialMsetFailures(test) {
+  var cluster = new zcache.CacheCluster()
+  var fakeCache1 = new zcache.FakeCache(logger)
+  var fakeCache2 = new zcache.FakeCache(logger)
+  cluster.addNode('FakeCache1', fakeCache1, 1, 0)
+  cluster.addNode('FakeCache2', fakeCache2, 1, 0)
+  cluster.connect()
+
+  var data1 = {'key1':  {value: 'valA'}, 'key2':  {value: 'valB'}}
+  var errors1 = {'key3': new zcache.TimeoutError()}
+  var data2 = {'key5':  {value: 'valC'}, 'key6':  {value: 'valD'}}
+  var errors2 = {'key4': new zcache.TimeoutError()}
+
+  fakeCache1.setFailureCount(1)
+  fakeCache2.setFailureCount(1)
+  fakeCache1.setNextFailure(new zcache.PartialResultError(data1, errors1))
+  fakeCache2.setNextFailure(new zcache.PartialResultError(data2, errors2))
+  return cluster.mget(['key1', 'key2', 'key3', 'key4', 'key5', 'key6'])
+    .fail(function (err) {
+      test.ok(err instanceof PartialResultError)
+      var result = err.getData()
+      var errors = err.getError()
+      test.equal(result['key1'], 'valA')
+      test.equal(result['key2'], 'valB')
+      test.equal(result['key5'], 'valC')
+      test.equal(result['key6'], 'valD')
+      test.ok(errors['key3'] instanceof zcache.TimeoutError)
+      test.ok(errors['key4'] instanceof zcache.TimeoutError)
+    })
+})
+
 builder.add(function testDel(test) {
   var cluster = new zcache.CacheCluster()
   cluster.addNode('FakeCache1', new zcache.FakeCache(logger), 1, 0)

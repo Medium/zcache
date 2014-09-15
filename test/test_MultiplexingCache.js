@@ -1,5 +1,6 @@
 var zcache = require('../index')
 var nodeunitq = require('nodeunitq')
+var PartialResultError = require('../lib/PartialResultError')
 var Q = require('kew')
 
 var fake
@@ -173,9 +174,20 @@ builder.add(function testConcurrentMGetsWithExceptions(test) {
   var p1 = cache.mget(['a', 'b', 'c'])
   var p2 = cache.mget(['b', 'c', 'd'])
   var p3 = cache.mget(['e', 'f', 'g'])
-  return Q.all([p1, p2, p3]).then(function (results) {
-    test.deepEqual(results[0], [undefined, undefined, undefined])
-    test.deepEqual(results[1], [undefined, undefined, '4'])
-    test.deepEqual(results[2], ['5', '6', '7'])
+  return Q.allSettled([p1, p2, p3]).then(function (results) {
+    test.equal(results[0]["state"], "rejected")
+    test.equal(results[1]["state"], "rejected")
+    test.equal(results[2]["state"], "fulfilled")
+    test.deepEqual(results[2]["value"], ['5', '6', '7'])
+    test.ok(results[0]["reason"] instanceof PartialResultError)
+    var p0Result = results[0]["reason"].getData()
+    test.ok(results[1]["reason"] instanceof PartialResultError)
+    var p1Result = results[1]["reason"].getData()
+    test.equal(p0Result['a'], undefined)
+    test.equal(p0Result['b'], undefined)
+    test.equal(p0Result['c'], undefined)
+    test.equal(p1Result['b'], undefined)
+    test.equal(p1Result['c'], undefined)
+    test.equal(p1Result['d'], 4)
   })
 })

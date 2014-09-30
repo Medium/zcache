@@ -1,5 +1,10 @@
 var zcache = require('../index')
+var PartialResultError = require('../lib/PartialResultError')
 var Q = require('kew')
+var logger = require('logg').getLogger('test RedundantCacheGroup')
+
+// Mock the setInterval so metrics will not hang the test
+global.setInterval = function () {}
 
 module.exports = {
   setUp: function (callback) {
@@ -207,6 +212,154 @@ module.exports = {
     this.cacheInstance.get('foo')
       .then(function (data) {
         test.equal(data, undefined, 'bar should not be in the cache')
+        test.done()
+      })
+  },
+
+  testCacheMgetErrorsFromNextLevel: function (test) {
+    this.memoryInstance1 = new zcache.FakeCache(logger)
+    this.memoryInstance1.connect()
+    this.memoryInstance2 = new zcache.FakeCache(logger)
+    this.memoryInstance2.connect()
+
+    this.cacheInstance = new zcache.RedundantCacheGroup()
+    this.cacheInstance.add(this.memoryInstance1, 2)
+    this.cacheInstance.add(this.memoryInstance2, 1)
+    this.cacheInstance.connect()
+
+    this.memoryInstance1.set('one', 'one', 10000)
+    this.memoryInstance2.setFailureCount(1)
+
+    this.cacheInstance.mget(['one', 'two'])
+      .then(function (results) {
+        test.fail('mget() should throw a partial result error')
+      })
+      .fail(function (err) {
+        test.ok(err instanceof PartialResultError)
+        test.deepEqual({'one': 'one'}, err.getData())
+      })
+      .fin(function () {
+        test.done()
+      })
+  },
+
+  testCacheMgetPartialFailuresFromNextLevel: function (test) {
+    this.memoryInstance1 = new zcache.FakeCache(logger)
+    this.memoryInstance1.connect()
+    this.memoryInstance2 = new zcache.FakeCache(logger)
+    this.memoryInstance2.connect()
+
+    this.cacheInstance = new zcache.RedundantCacheGroup()
+    this.cacheInstance.add(this.memoryInstance1, 2)
+    this.cacheInstance.add(this.memoryInstance2, 1)
+    this.cacheInstance.connect()
+
+    this.memoryInstance1.set('one', 'one', 10000)
+    this.memoryInstance2.setFailureCount(1)
+    this.memoryInstance2.setNextFailure(new PartialResultError({'two': 'two'}, {'three': new Error()}))
+
+    this.cacheInstance.mget(['one', 'two', 'three'])
+      .then(function () {
+        test.fail('mget() should throw a partial result error')
+      })
+      .fail(function (err) {
+        test.ok(err instanceof PartialResultError)
+        test.deepEqual({'one': 'one', 'two': 'two'}, err.getData())
+        test.ok('three' in err.getError())
+      })
+      .fin(function () {
+        test.done()
+      })
+  },
+
+  testCacheMgetAllKeyToNextLevelAndFail: function (test) {
+    this.memoryInstance1 = new zcache.FakeCache(logger)
+    this.memoryInstance1.connect()
+    this.memoryInstance2 = new zcache.FakeCache(logger)
+    this.memoryInstance2.connect()
+
+    this.cacheInstance = new zcache.RedundantCacheGroup()
+    this.cacheInstance.add(this.memoryInstance1, 2)
+    this.cacheInstance.add(this.memoryInstance2, 1)
+    this.cacheInstance.connect()
+
+    this.memoryInstance2.setFailureCount(1)
+
+    this.cacheInstance.mget(['one', 'two'])
+      .then(function () {
+        test.fail('mget() should just fail')
+      })
+      .fail(function (err) {
+        test.ok(!(err instanceof PartialResultError))
+      })
+      .fin(function () {
+        test.done()
+      })
+  },
+
+  testCacheMgetThreeLevels: function (test) {
+    this.memoryInstance1 = new zcache.FakeCache(logger)
+    this.memoryInstance1.connect()
+    this.memoryInstance2 = new zcache.FakeCache(logger)
+    this.memoryInstance2.connect()
+    this.memoryInstance3 = new zcache.FakeCache(logger)
+    this.memoryInstance3.connect()
+
+    this.cacheInstance = new zcache.RedundantCacheGroup()
+    this.cacheInstance.add(this.memoryInstance1, 3)
+    this.cacheInstance.add(this.memoryInstance2, 2)
+    this.cacheInstance.add(this.memoryInstance3, 1)
+    this.cacheInstance.connect()
+
+    this.memoryInstance1.set('one', 'one', 10000)
+    this.memoryInstance2.set('two', 'two', 10000)
+    this.memoryInstance3.setFailureCount(1)
+    this.memoryInstance3.setNextFailure(new PartialResultError({'three': 'three'}, {'four': new Error()}))
+
+    this.cacheInstance.mget(['one', 'two', 'three', 'four'])
+      .then(function () {
+        test.fail('mget() should just fail')
+      })
+      .fail(function (err) {
+        test.ok(err instanceof PartialResultError)
+        test.deepEqual({'one': 'one', 'two': 'two', 'three': 'three'}, err.getData())
+        test.ok('four' in err.getError())
+      })
+      .fin(function () {
+        test.done()
+      })
+  },
+
+  testCacheMgetStopAtFirstError: function (test) {
+    this.memoryInstance1 = new zcache.FakeCache(logger)
+    this.memoryInstance1.connect()
+    this.memoryInstance2 = new zcache.FakeCache(logger)
+    this.memoryInstance2.connect()
+    this.memoryInstance3 = new zcache.FakeCache(logger)
+    this.memoryInstance3.connect()
+
+    this.cacheInstance = new zcache.RedundantCacheGroup()
+    this.cacheInstance.add(this.memoryInstance1, 3)
+    this.cacheInstance.add(this.memoryInstance2, 2)
+    this.cacheInstance.add(this.memoryInstance3, 1)
+    this.cacheInstance.connect()
+
+    this.memoryInstance1.set('one', 'one', 10000)
+    this.memoryInstance2.setFailureCount(1)
+    this.memoryInstance2.setNextFailure(new PartialResultError({'three': 'three'}, {'two': new Error(), 'four': new Error()}))
+    this.memoryInstance3.set('two', 'two', 10000)
+
+    this.cacheInstance.mget(['one', 'two', 'three', 'four'])
+      .then(function () {
+        test.fail('mget() should just fail')
+      })
+      .fail(function (err) {
+        test.ok(err instanceof PartialResultError)
+        test.deepEqual({'one': 'one', 'three': 'three'}, err.getData())
+        test.ok('two' in err.getError())
+        test.ok('four' in err.getError())
+      })
+      .fin(function () {
         test.done()
       })
   }

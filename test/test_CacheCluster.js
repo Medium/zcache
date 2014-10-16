@@ -195,16 +195,22 @@ builder.add(function testMergePartialMsetFailures(test) {
   cluster.addNode('FakeCache2', fakeCache2, 1, 0)
   cluster.connect()
 
-  var data1 = {'key1':  {value: 'valA'}, 'key2':  {value: 'valB'}}
+  var data1 = {'key1':  {value: 'valA'}, 'key2':  {value: 'valB'}, "keyBad": {}}
   var errors1 = {'key3': new zcache.TimeoutError()}
   var data2 = {'key5':  {value: 'valC'}, 'key6':  {value: 'valD'}}
-  var errors2 = {'key4': new zcache.TimeoutError()}
+
+  var data3 = {'key7': {value: 'valE'}, 'keyBad2': {}}
+  var errors3 = {'key8': new zcache.TimeoutError()}
+
+  var errors2 = {'key4': new zcache.PartialResultError(data3, errors3)}
+
+
 
   fakeCache1.setFailureCount(1)
   fakeCache2.setFailureCount(1)
   fakeCache1.setNextFailure(new zcache.PartialResultError(data1, errors1))
   fakeCache2.setNextFailure(new zcache.PartialResultError(data2, errors2))
-  return cluster.mget(['key1', 'key2', 'key3', 'key4', 'key5', 'key6'])
+  return cluster.mget(['key1', 'key2', 'key3', 'key4', 'key5', 'key6', 'key7', 'key8', 'keyBad', 'keyBad2'])
     .fail(function (err) {
       test.ok(err instanceof PartialResultError)
       var result = err.getData()
@@ -213,8 +219,10 @@ builder.add(function testMergePartialMsetFailures(test) {
       test.equal(result['key2'], 'valB')
       test.equal(result['key5'], 'valC')
       test.equal(result['key6'], 'valD')
+      test.equal(result['key7'], 'valE')
       test.ok(errors['key3'] instanceof zcache.TimeoutError)
-      test.ok(errors['key4'] instanceof zcache.TimeoutError)
+      test.equal(undefined, errors['key4'], "partial result error should be unpacked")
+      test.ok(errors['key8'] instanceof zcache.TimeoutError)
     })
 })
 

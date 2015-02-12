@@ -1,4 +1,4 @@
 zcache
 ===
 
-[![Build Status](https://travis-ci.org/Medium/zcache.svg?branch=xiao-travis)](https://travis-ci.org/Medium/zcache)
+[![Build Status](https://travis-ci.org/Medium/zcache.svg)](https://travis-ci.org/Medium/zcache)

@@ -296,7 +296,7 @@ builder.add(function testCounts(test) {
 
     Q.all([cacheInstance.del('key1'), cacheInstance.del('key2'), cacheInstance.del('key3'), cacheInstance.del('key4')])
       .then(function () {
-        cacheInstance.mset(items, 300000)
+        return cacheInstance.mset(items, 300000)
       })
       .then(function () {
         return cacheInstance.mget(['key1', 'key2', 'key3', 'key4'])
@@ -309,7 +309,7 @@ builder.add(function testCounts(test) {
       })
       .fail(function (e) {
         console.error(e)
-        test.fail(e.message)
+        test.ok(false, e.message)
         test.done()
       })
   })
@@ -328,32 +328,32 @@ function runCommonTest(cacheInstancePut, cacheInstanceGet, test, compressionFlag
 
   // longVal will have a length of 1180 after the for loop is executed, making it longer than the pivot
   var longVal = 'A long string that should be compressed because it is greater than 750 chars'
-  for (i = 0; i < 4; i++) { 
-   longVal = longVal.concat(longVal) 
+  for (i = 0; i < 4; i++) {
+   longVal = longVal.concat(longVal)
   }
   var longValOn = '@snappy@wAnwPEEgbG9uZyBzdHJpbmcgdGhhdCBzaG91bGQgYmUgY29tcHJlc3NlZCBiZWNhdXNlIGl0IGlzIGdyZWF0ZXIBMChuIDc1MCBjaGFyc/5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAP5MAM5MAA=='
   var tinyVal = 'tiny'
   var tinyValOn = '@orig@tiny'
   var nullVal = 'null'
   var undefinedVal = 'undefined'
-    
+
   var items = [
     {key: 'longValue2', value: longVal},
     {key: 'tinyValue2', value: tinyVal}
   ]
-   
+
   var testKeys = ['longValue', 'tinyValue', 'longValue2', 'tinyValue2', 'nullValue', 'undefinedValue']
   var expValsWithoutCompression = [longVal, tinyVal, longVal, tinyVal, nullVal, undefinedVal]
   var expValsWithCompression = [longValOn, tinyValOn, longValOn, tinyValOn, nullVal, undefinedVal]
   var expVals = compressionFlag ? expValsWithCompression : expValsWithoutCompression
 
   var populateSetterFuncs = function() {
-    return [ 
+    return [
       cacheInstancePut.set('longValue', longVal, 100000),
       cacheInstancePut.set('tinyValue', tinyVal, 100000),
       cacheInstancePut.set('nullValue', null, 100000),
       cacheInstancePut.set('undefinedValue', undefined, 100000),
-      cacheInstancePut.mset(items, 100000) 
+      cacheInstancePut.mset(items, 100000)
     ]
   }
 
@@ -375,28 +375,28 @@ function runCommonTest(cacheInstancePut, cacheInstanceGet, test, compressionFlag
           return deferred.resolve(value)
     })
     return deferred.promise
-        
+
    }).then(function (vals) {
        // confirm cache entries look good
        test.deepEqual(expVals, vals)
-       return Q.resolve() 
+       return Q.resolve()
    }).then(function () { return cacheInstanceGet.get('longValue')
    }).then(function (val) {
-       // confirm get works   
-       test.equal(longVal, val)  
+       // confirm get works
+       test.equal(longVal, val)
        return cacheInstanceGet.mget(testKeys)
    }).then(function (vals) {
        // confirm mget works
        test.deepEqual(expValsWithoutCompression, vals)
        destroyRedisClient()
-   }) 
+   })
    .fail(function (e) {
        console.error(e)
-       test.fail(e.message)
+       test.ok(false, e.stack)
        destroyRedisClient()
-   })  
+   })
 
-   return bigDeferred.promise  
+   return bigDeferred.promise
 }
 
 // Test 1: Compression Off
@@ -409,7 +409,7 @@ builder.add(function testCompressionOff(test) {
     runCommonTest(cacheInstance, cacheInstance, test, false)
       .fin(function () {
         cacheInstance.destroy()
-      })  
+      })
   })
 
   cacheInstance.on('destroy', function () {
@@ -457,12 +457,12 @@ builder.add(function testCompressionPutOffGetOn(test) {
       .fin(function () {
          cacheInstancePut.destroy()
          cacheInstanceGet.destroy()
-      }) 
+      })
   })
 
   var count = 0
-  var destroy = function () { 
-    if (++count === 2) test.done() 
+  var destroy = function () {
+    if (++count === 2) test.done()
   }
 
   cacheInstancePut.on('destroy', function() {
@@ -492,13 +492,13 @@ builder.add(function testCompressionPutOnGetOff(test) {
     runCommonTest(cacheInstancePut, cacheInstanceGet, test, true)
       .fin(function () {
          cacheInstancePut.destroy()
-         cacheInstanceGet.destroy()         
+         cacheInstanceGet.destroy()
       })
   })
- 
+
   var count = 0
-  var destroy = function () { 
-   if (++count === 2) test.done() 
+  var destroy = function () {
+   if (++count === 2) test.done()
   }
 
   cacheInstancePut.on('destroy', function() {
@@ -510,5 +510,3 @@ builder.add(function testCompressionPutOnGetOff(test) {
 
   cacheInstancePut.connect()
 })
-
-

@@ -2,16 +2,18 @@
 
 /**
  * @param {string} value
+ * @param {function(?, ?)} callback
  * @return {Buffer}
  */
-function compressSync(value) {}
+function compress(value, callback) {}
 
 /**
  * @param {Buffer} value
  * @param {function(Buffer): string} parser
+ * @param {function(?, ?)} callback
  * @return {string}
  */
-function decompressSync(value, parser) {}
+function decompress(value, parser, callback) {}
 
 /**
  * @param {Buffer} value
@@ -27,7 +29,6 @@ var parsers = {
 
 module.exports = {
   parsers: parsers,
-  compressSync: compressSync,
-  decompressSync: decompressSync
+  compress: compress,
+  decompress: decompress
 }
-

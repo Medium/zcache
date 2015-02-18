@@ -341,7 +341,7 @@ builder.add(function testLatencyMeasurement(test) {
     .then(function() {
       test.equal(20, cluster.getStats('set').count())
       test.ok(cluster.getStats('set').mean() > 28)
-      test.ok(cluster.getStats('set').mean() < 35)
+      test.ok(cluster.getStats('set').mean() < 38)
 
       var getPromises = []
       for (var i = 0; i < 20; i++) {
@@ -352,7 +352,7 @@ builder.add(function testLatencyMeasurement(test) {
     .then(function() {
       test.equal(20, cluster.getStats('get').count())
       test.ok(cluster.getStats('get').mean() > 28)
-      test.ok(cluster.getStats('get').mean() < 35)
+      test.ok(cluster.getStats('get').mean() < 38)
 
       var items = []
       for (var i = 0; i < 20; i++) {
@@ -366,7 +366,7 @@ builder.add(function testLatencyMeasurement(test) {
     .then(function() {
       test.equal(1, cluster.getStats('mset').count())
       test.ok(cluster.getStats('mset').mean() > 28)
-      test.ok(cluster.getStats('mset').mean() < 35)
+      test.ok(cluster.getStats('mset').mean() < 38)
 
       var keys = []
       for (var i = 0; i < 20; i++) {
@@ -377,7 +377,7 @@ builder.add(function testLatencyMeasurement(test) {
     .then(function() {
       test.equal(1, cluster.getStats('mget').count())
       test.ok(cluster.getStats('mget').mean() > 28)
-      test.ok(cluster.getStats('mget').mean() < 35)
+      test.ok(cluster.getStats('mget').mean() < 38)
     })
 
 })

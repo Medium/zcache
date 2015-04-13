@@ -25,6 +25,21 @@ exports.testInMemoryCache = function (test) {
   test.done()
 }
 
+exports.testCacheIncr = function (test) {
+  var self = this
+  test.equal(0, this.cI.getKeyCount(), 'There is no key in cache')
+  this.cI.incr('counter', 15)
+    .then(function() {
+      test.equal(self.cI._data['counter'], 15, '15 should be returned')
+      test.equal(1, self.cI.getKeyCount(), 'There is 1 key in cache')
+      return self.cI.incr('counter')
+    }).then(function() {
+      test.equal(self.cI._data['counter'], 16, '16 should be returned')
+      test.equal(1, self.cI.getKeyCount(), 'There is 1 key in cache')
+      test.done()
+    })
+}
+
 exports.testCacheSet = function (test) {
   var self = this
   test.equal(0, this.cI.getKeyCount(), 'There is no key in cache')

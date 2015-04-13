@@ -108,6 +108,38 @@ builder.add(function testRedisConnection(test) {
   cacheInstance.connect()
 })
 
+builder.add(function testIncr(test) {
+  var cacheInstance = new zcache.RedisConnection('localhost', 6379)
+
+  cacheInstance.on('connect', function () {
+    cacheInstance.removeAllListeners('connect')
+    test.equal(cacheInstance.isAvailable(), true, 'Connection should be available')
+
+    cacheInstance.incr('counter', 15)
+      .then(function () {
+        return cacheInstance.incr('counter')
+      })
+      .then(function (val) {
+        return cacheInstance.get('counter')
+      })
+      .then(function (val) {
+        test.equal(val, '16')
+        cacheInstance.destroy()
+      })
+      .fail(function (e) {
+        console.error(e)
+        test.fail(e.message)
+        test.done()
+      })
+  })
+
+  cacheInstance.on('destroy', function () {
+    test.done()
+  })
+
+  cacheInstance.connect()
+})
+
 builder.add(function testSetNotExist(test) {
   var cacheInstance = new zcache.RedisConnection('localhost', 6379)
 

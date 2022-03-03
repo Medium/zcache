@@ -21,7 +21,7 @@
   "dependencies": {
     "node-memcache-parser-obvfork": "0.1.1",
     "generic-pool": "2.0.3",
-    "kew": "git+https://github.com/Medium/kew#a9a2ef0",
+    "kew": "git+https://github.com/Medium/kew#7caa1be",
     "redis": "0.12.1",
     "hiredis": "0.4.1",
     "metrics": "0.1.6",
